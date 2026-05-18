@@ -18,7 +18,12 @@ from app.core.exceptions import (
     unhandled_exception_handler,
 )
 from app.core.logging import setup_logging
-from app.core.middleware import RequestIDMiddleware
+from app.core.middleware import (
+    AuditLogMiddleware,
+    BodySizeLimitMiddleware,
+    RequestIDMiddleware,
+    SecurityHeadersMiddleware,
+)
 
 log = structlog.get_logger(__name__)
 
@@ -108,7 +113,8 @@ app.add_exception_handler(HTTPException, http_exception_handler)
 app.add_exception_handler(Exception, unhandled_exception_handler)
 
 # Middleware (order matters: last added = first executed)
-app.add_middleware(RequestIDMiddleware)
+# Execution order on request:  SecurityHeaders → RequestID → BodySizeLimit → AuditLog → CORS → route
+# Execution order on response: route → CORS → AuditLog → BodySizeLimit → RequestID → SecurityHeaders
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -117,6 +123,13 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["X-Request-ID"],
 )
+app.add_middleware(AuditLogMiddleware)
+app.add_middleware(
+    BodySizeLimitMiddleware,
+    max_bytes=settings.MAX_JSON_BODY_SIZE_MB * 1024 * 1024,
+)
+app.add_middleware(RequestIDMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Register routers
 from app.modules.auth.router import router as auth_router

@@ -60,6 +60,38 @@ function groupConversationsByTime(conversations: AIConversation[]) {
   return groups.filter((g) => g.items.length > 0)
 }
 
+// ─── SafeMessage ──────────────────────────────────────────────────────────────
+// Renders AI text content safely:
+// 1. HTML entities are escaped first so no raw markup from the model survives.
+// 2. Only our own known-safe tags (strong, code, br) are then re-introduced
+//    via controlled regex replacements on the already-escaped string.
+
+function SafeMessage({ content }: { content: string }) {
+  // Step 1 — escape all HTML so AI-supplied markup is inert
+  const escaped = content
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+
+  // Step 2 — apply safe inline formatting on the now-escaped text
+  const formatted = escaped
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(
+      /`([^`]+)`/g,
+      '<code class="font-mono text-xs bg-surface-inset px-1 rounded">$1</code>'
+    )
+    .replace(/\n/g, '<br>')
+
+  // dangerouslySetInnerHTML is safe here because all original HTML has been
+  // entity-escaped above, and only our controlled tags were introduced.
+  return (
+    <span
+      className="whitespace-pre-wrap break-words"
+      dangerouslySetInnerHTML={{ __html: formatted }}
+    />
+  )
+}
+
 // ─── ToolCallBlock ─────────────────────────────────────────────────────────────
 
 function ToolCallBlock({ toolCall }: { toolCall: ToolCall }) {
@@ -146,8 +178,8 @@ function MessageBubble({ message }: { message: LocalMessage }) {
                 />
               ))}
             </span>
-          ) : (
-            <span className="whitespace-pre-wrap">
+          ) : isUser ? (
+            <span className="whitespace-pre-wrap break-words">
               {message.content}
               {message.isStreaming && (
                 <span
@@ -156,6 +188,16 @@ function MessageBubble({ message }: { message: LocalMessage }) {
                 />
               )}
             </span>
+          ) : (
+            <>
+              <SafeMessage content={message.content} />
+              {message.isStreaming && (
+                <span
+                  className="inline-block w-[2px] h-[1em] bg-current ml-0.5 align-middle animate-pulse"
+                  aria-hidden="true"
+                />
+              )}
+            </>
           )}
         </div>
 
@@ -182,6 +224,10 @@ const SUGGESTED_PROMPTS = [
   'How has my portfolio performed this month?',
   "What's my technology sector exposure?",
 ] as const
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const MAX_MESSAGE_LENGTH = 8000
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -572,6 +618,7 @@ export default function AIPage() {
               placeholder="Ask about your portfolios..."
               rows={1}
               disabled={isStreaming}
+              maxLength={MAX_MESSAGE_LENGTH}
               className={cn(
                 'w-full bg-surface-inset rounded-lg px-3 py-2.5 text-sm text-text-primary',
                 'placeholder:text-text-placeholder resize-none',
@@ -585,16 +632,28 @@ export default function AIPage() {
             />
             <div className="flex items-center justify-between mt-2">
               <span className="text-xs text-text-muted">Ctrl + Enter to send</span>
-              <Button
-                type="button"
-                size="icon-sm"
-                className="size-8"
-                onClick={() => sendMessage(inputValue)}
-                disabled={!inputValue.trim() || isStreaming}
-                aria-label="Send message"
-              >
-                <ArrowUp className="size-4" aria-hidden="true" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    'text-2xs text-text-muted tabular-nums',
+                    inputValue.length >= MAX_MESSAGE_LENGTH && 'text-danger'
+                  )}
+                  aria-live="polite"
+                  aria-label={`${inputValue.length} of ${MAX_MESSAGE_LENGTH} characters`}
+                >
+                  {inputValue.length}/{MAX_MESSAGE_LENGTH}
+                </span>
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  className="size-8"
+                  onClick={() => sendMessage(inputValue)}
+                  disabled={!inputValue.trim() || isStreaming}
+                  aria-label="Send message"
+                >
+                  <ArrowUp className="size-4" aria-hidden="true" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>

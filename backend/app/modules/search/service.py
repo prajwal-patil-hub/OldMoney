@@ -29,12 +29,21 @@ class SearchService:
         # Sanitize query for FTS5 — escape special chars
         fts_query = self._build_fts_query(query)
 
-        type_filter = ""
-        if types:
-            valid_types = [t for t in types if t in SUPPORTED_TYPES]
-            if valid_types:
-                placeholders = ",".join(f"'{t}'" for t in valid_types)
-                type_filter = f"AND entity_type IN ({placeholders})"
+        valid_types: list[str] = [t for t in (types or []) if t in SUPPORTED_TYPES]
+
+        # Build type filter using SQLite parameterised IN clause.
+        # We cannot use SQLAlchemy bind params inside FTS5 MATCH expressions,
+        # but the IN list is constructed from a strict whitelist so interpolation
+        # is safe here. We still assert to make future regressions loud.
+        assert all(t in SUPPORTED_TYPES for t in valid_types), "type whitelist violated"
+
+        if valid_types:
+            # SQLite doesn't support array binds so we use positional params
+            in_clause = ",".join(["?"] * len(valid_types))
+            type_filter = f"AND entity_type IN ({in_clause})"
+        else:
+            type_filter = ""
+            valid_types = []
 
         sql = text(f"""
             SELECT entity_type, entity_id, title, body, metadata,
@@ -47,11 +56,26 @@ class SearchService:
             LIMIT :limit
         """)
 
+        params: dict = {"query": fts_query, "org_id": str(org_id), "limit": limit}
+        # SQLAlchemy text() doesn't support positional ? for SQLite, so we
+        # fall back to named params for the type list
+        if valid_types:
+            for i, t in enumerate(valid_types):
+                params[f"t{i}"] = t
+            # Rebuild with named params
+            in_clause_named = ",".join([f":t{i}" for i in range(len(valid_types))])
+            type_filter_named = f"AND entity_type IN ({in_clause_named})"
+            sql = text(f"""
+                SELECT entity_type, entity_id, title, body, metadata, rank
+                FROM search_index
+                WHERE search_index MATCH :query
+                  AND org_id = :org_id
+                  {type_filter_named}
+                ORDER BY rank
+                LIMIT :limit
+            """)
         try:
-            result = await self.db.execute(
-                sql,
-                {"query": fts_query, "org_id": str(org_id), "limit": limit},
-            )
+            result = await self.db.execute(sql, params)
             rows = result.mappings().all()
         except Exception as e:
             log.warning("fts_search_failed", error=str(e), query=query)

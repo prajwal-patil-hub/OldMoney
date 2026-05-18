@@ -20,20 +20,7 @@ export function initApiStore(
   getStore = getter
 }
 
-let isRefreshing = false
-let refreshSubscribers: Array<(token: string) => void> = []
-
-function subscribeTokenRefresh(cb: (token: string) => void) {
-  refreshSubscribers.push(cb)
-}
-
-function onTokenRefreshed(token: string) {
-  refreshSubscribers.forEach((cb) => cb(token))
-  refreshSubscribers = []
-}
-
-function onRefreshFailed() {
-  refreshSubscribers = []
+function redirectToLogin() {
   const store = getStore()
   store?.clearAuth()
   if (typeof window !== 'undefined') {
@@ -66,40 +53,27 @@ api.interceptors.response.use(
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true
       const store = getStore()
 
       if (!store?.refreshToken) {
-        onRefreshFailed()
+        // No in-memory refresh token — clear auth and redirect to login immediately
+        redirectToLogin()
         return Promise.reject(error)
       }
-
-      if (isRefreshing) {
-        return new Promise<string>((resolve) => {
-          subscribeTokenRefresh(resolve)
-        }).then((token) => {
-          originalRequest.headers.Authorization = `Bearer ${token}`
-          return api(originalRequest)
-        })
-      }
-
-      originalRequest._retry = true
-      isRefreshing = true
 
       try {
         const response = await axios.post<import('@/types/api').AuthResponse>(
           `${API_BASE_URL}/api/v1/auth/refresh`,
           { refresh_token: store.refreshToken }
         )
-        const { access_token } = response.data
-        store.setAuth(response.data)
-        onTokenRefreshed(access_token)
+        const { access_token, refresh_token } = response.data
+        store.setAuth({ ...response.data, access_token, refresh_token })
         originalRequest.headers.Authorization = `Bearer ${access_token}`
         return api(originalRequest)
-      } catch (_refreshError) {
-        onRefreshFailed()
+      } catch {
+        redirectToLogin()
         return Promise.reject(error)
-      } finally {
-        isRefreshing = false
       }
     }
 

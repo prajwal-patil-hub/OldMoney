@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -21,6 +23,8 @@ from app.shared.responses import success
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+limiter = Limiter(key_func=get_remote_address)
+
 
 def _get_client_info(request: Request) -> tuple[str | None, str | None]:
     ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else None)
@@ -29,8 +33,10 @@ def _get_client_info(request: Request) -> tuple[str | None, str | None]:
 
 
 @router.post("/register", response_model=dict, status_code=201)
+@limiter.limit("10/minute")
 async def register(
     body: RegisterRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ):
     svc = AuthService(db)
@@ -43,6 +49,7 @@ async def register(
 
 
 @router.post("/login", response_model=dict)
+@limiter.limit("10/minute")
 async def login(
     body: LoginRequest,
     request: Request,
@@ -60,6 +67,7 @@ async def login(
 
 
 @router.post("/refresh", response_model=dict)
+@limiter.limit("20/minute")
 async def refresh(
     body: RefreshRequest,
     request: Request,
@@ -108,8 +116,10 @@ async def update_me(
 
 
 @router.post("/change-password", response_model=dict)
+@limiter.limit("5/minute")
 async def change_password(
     body: ChangePasswordRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):

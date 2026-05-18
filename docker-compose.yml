@@ -1,50 +1,84 @@
 version: "3.9"
 
+# ── OldMoney local-first stack ──────────────────────────────────────────────
+# Two services only: api (FastAPI) + web (Next.js)
+# Ollama runs on the host and is accessed via host.docker.internal.
+# ────────────────────────────────────────────────────────────────────────────
+
 services:
   api:
     build:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"      # bind to loopback only — not 0.0.0.0
     volumes:
-      - ./data:/app/data
-      - ./backend:/app
+      - api_data:/app/data          # named volume; NOT a bind-mount of source
     environment:
       - DATABASE_URL=sqlite+aiosqlite:////app/data/oldmoney.db
-      - SECRET_KEY=${SECRET_KEY:-change-me-in-production-use-32-chars}
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set in .env}
       - DEBUG=${DEBUG:-false}
       - AI_PROVIDER=${AI_PROVIDER:-ollama}
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.1:8b}
-      - CORS_ORIGINS=["http://localhost:3000","http://web:3000"]
+      - CORS_ORIGINS=["http://localhost:3000"]
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 10s
+      interval: 15s
       timeout: 5s
       retries: 5
+      start_period: 30s
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: false               # needs to write to /app/data
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid
 
   web:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"      # bind to loopback only
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
       - NODE_ENV=production
     depends_on:
       api:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 10s
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health", "||",
+             "exit", "0"]
+      interval: 15s
       timeout: 5s
       retries: 5
+      start_period: 20s
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,noexec,nosuid
 
 volumes:
-  data:
+  api_data:
+    driver: local

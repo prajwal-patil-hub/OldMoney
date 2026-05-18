@@ -58,10 +58,17 @@ def create_access_token(
 
 
 def decode_access_token(token: str) -> dict:
-    """Decode and validate an access token. Raises JWTError on failure."""
-    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+    """Decode and validate an access token.
+
+    Raises JWTError on any failure — message is intentionally generic
+    to avoid leaking validation details to callers.
+    """
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        raise JWTError("Token validation failed")
     if payload.get("type") != "access":
-        raise JWTError("Invalid token type")
+        raise JWTError("Token validation failed")
     return payload
 
 

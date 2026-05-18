@@ -37,8 +37,9 @@ async def get_current_user(
     token = credentials.credentials
     try:
         payload = decode_access_token(token)
-    except JWTError as e:
-        raise AuthenticationError(f"Invalid token: {e}") from e
+    except JWTError:
+        # Do not surface internal JWT error details to callers
+        raise AuthenticationError("Invalid or expired token")
 
     user_id = payload.get("sub")
     if not user_id:
