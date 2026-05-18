@@ -42,7 +42,7 @@ class AuthorizationError(DomainError):
 
 
 class ValidationError(DomainError):
-    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    status_code = 422
     error_code = "VALIDATION_ERROR"
     message = "Validation failed"
 

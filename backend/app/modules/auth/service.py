@@ -145,7 +145,7 @@ class AuthService:
             await self.token_repo.revoke_all_for_user(token.user_id)
             log.warning("refresh_token_reuse_detected", user_id=str(token.user_id))
             raise AuthenticationError("Refresh token already used")
-        if token.expires_at < datetime.now(UTC):
+        if _ensure_utc(token.expires_at) < datetime.now(UTC):
             raise AuthenticationError("Refresh token expired")
 
         # Revoke old token

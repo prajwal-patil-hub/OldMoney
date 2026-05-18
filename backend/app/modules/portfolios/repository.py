@@ -52,14 +52,25 @@ class PortfolioRepository:
         portfolio = Portfolio(org_id=org_id, **kwargs)
         self.db.add(portfolio)
         await self.db.flush()
-        await self.db.refresh(portfolio)
-        return portfolio
+        # Reload with accounts relationship eagerly loaded
+        result = await self.db.execute(
+            select(Portfolio)
+            .options(selectinload(Portfolio.accounts))
+            .where(Portfolio.id == portfolio.id)
+        )
+        return result.scalar_one()
 
     async def update(self, portfolio: Portfolio, **kwargs) -> Portfolio:  # type: ignore[type-arg]
         for key, value in kwargs.items():
             setattr(portfolio, key, value)
         await self.db.flush()
-        return portfolio
+        # Reload with accounts
+        result = await self.db.execute(
+            select(Portfolio)
+            .options(selectinload(Portfolio.accounts))
+            .where(Portfolio.id == portfolio.id)
+        )
+        return result.scalar_one()
 
 
 class AccountRepository:
