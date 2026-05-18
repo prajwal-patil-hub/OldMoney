@@ -53,7 +53,13 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             yield session
             await session.commit()
         except Exception:
-            await session.rollback()
+            # Try to commit any pending state (e.g. failed login attempt counter)
+            # before rolling back — this allows audit-style writes to persist
+            # even when the request raises a domain error.
+            try:
+                await session.commit()
+            except Exception:
+                await session.rollback()
             raise
         finally:
             await session.close()

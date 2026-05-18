@@ -8,7 +8,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy import select
 
+from datetime import timezone as _tz
+
 from app.core.config import settings
+
+
+def _ensure_utc(dt: datetime | None) -> datetime | None:
+    """Make a datetime timezone-aware (UTC) even if SQLite returned a naive one."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=_tz.utc)
+    return dt
 from app.core.exceptions import (
     AccountLockedError,
     AuthenticationError,
@@ -71,9 +82,10 @@ class AuthService:
 
         # Check lockout
         now = datetime.now(UTC)
-        if user.locked_until and user.locked_until > now:
+        locked_until = _ensure_utc(user.locked_until)
+        if locked_until and locked_until > now:
             raise AccountLockedError(
-                f"Account locked until {user.locked_until.isoformat()}"
+                f"Account locked until {locked_until.isoformat()}"
             )
 
         if not verify_password(password, user.hashed_password):
