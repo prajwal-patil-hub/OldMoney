@@ -424,8 +424,8 @@ export default function TransactionsPage() {
     <div className="page-transition space-y-5">
       <PageHeader
         title="Transactions"
-        description={`As of ${today}`}
-        actions={
+        asOf={`As of ${today}`}
+        action={
           <Button size="sm" onClick={() => setCreateOpen(true)}>
             <Plus aria-hidden="true" />
             Add Transaction

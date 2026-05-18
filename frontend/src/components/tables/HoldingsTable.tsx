@@ -1,5 +1,6 @@
 'use client'
 
+import * as React from 'react'
 import { useState, useMemo } from 'react'
 import {
   flexRender,
@@ -57,7 +58,7 @@ function GainColor({
   children,
 }: {
   value: number
-  children: React.ReactNode
+  children: React.ReactNode | string
 }) {
   return (
     <span
@@ -128,7 +129,7 @@ export function HoldingsTable({
         size: 110,
         enableSorting: true,
         cell: ({ row }) => (
-          <Badge variant={assetTypeBadgeVariant[row.original.asset_type] ?? 'secondary'}>
+          <Badge variant={(assetTypeBadgeVariant[row.original.asset_type] ?? 'secondary') as 'secondary'}>
             {ASSET_TYPE_LABELS[row.original.asset_type] ?? row.original.asset_type}
           </Badge>
         ),

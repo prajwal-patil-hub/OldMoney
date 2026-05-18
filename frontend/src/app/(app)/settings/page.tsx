@@ -1,5 +1,6 @@
 'use client'
 
+import * as React from 'react'
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -622,6 +623,8 @@ function SecurityTab() {
 
 // ─── Appearance tab ───────────────────────────────────────────────────────────
 
+type ThemeOption = 'light' | 'dark' | 'system'
+
 function AppearanceTab() {
   const theme = useUIStore((s) => s.theme)
   const setTheme = useUIStore((s) => s.setTheme)
@@ -638,11 +641,25 @@ function AppearanceTab() {
     localStorage.setItem('ui.density', d)
   }
 
-  const themeOptions = [
-    { value: 'light' as const, label: 'Light', Icon: Sun },
-    { value: 'dark' as const, label: 'Dark', Icon: Moon },
-    { value: 'system' as const, label: 'System', Icon: Monitor },
+  const [selectedThemeOption, setSelectedThemeOption] = useState<ThemeOption>(theme)
+
+  const themeOptions: { value: ThemeOption; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
+    { value: 'light', label: 'Light', Icon: Sun },
+    { value: 'dark', label: 'Dark', Icon: Moon },
+    { value: 'system', label: 'System', Icon: Monitor },
   ]
+
+  function handleThemeChange(value: ThemeOption) {
+    setSelectedThemeOption(value)
+    if (value === 'system') {
+      const prefersDark =
+        typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches
+      setTheme(prefersDark ? 'dark' : 'light')
+    } else {
+      setTheme(value)
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -654,19 +671,12 @@ function AppearanceTab() {
             <p className="text-xs text-text-secondary font-medium mb-3">Interface theme</p>
             <div className="flex gap-2">
               {themeOptions.map(({ value, label, Icon }) => {
-                const isActive = value === theme || (value === 'system' && theme === 'light')
+                const isActive = value === selectedThemeOption
                 return (
                   <button
                     key={value}
                     type="button"
-                    onClick={() => {
-                      if (value === 'system') {
-                        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-                        setTheme(prefersDark ? 'dark' : 'light')
-                      } else {
-                        setTheme(value)
-                      }
-                    }}
+                    onClick={() => handleThemeChange(value)}
                     className={cn(
                       'flex-1 flex flex-col items-center gap-2 px-3 py-3 rounded-lg border transition-colors duration-fast text-sm',
                       isActive

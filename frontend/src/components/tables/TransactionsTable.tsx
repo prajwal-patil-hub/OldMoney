@@ -124,7 +124,7 @@ export function TransactionsTable({
         cell: ({ row }) => {
           const type = row.original.transaction_type
           return (
-            <Badge variant={getTransactionBadgeVariant(type)}>
+            <Badge variant={getTransactionBadgeVariant(type) as 'success' | 'danger' | 'info' | 'warning' | 'secondary'}>
               {TRANSACTION_TYPE_LABELS[type]}
             </Badge>
           )
