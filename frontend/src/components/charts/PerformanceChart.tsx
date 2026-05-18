@@ -1,45 +1,81 @@
 'use client'
 
 import { useMemo } from 'react'
-import { ReactECharts, chartTheme } from './ChartWrapper'
+import dynamic from 'next/dynamic'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatDate, formatCurrency } from '@/lib/utils'
-import type { TimeSeriesPoint } from '@/types/api'
+import { formatCurrency } from '@/lib/utils'
 import type { EChartsOption } from 'echarts'
 
-interface PerformanceChartProps {
-  data: TimeSeriesPoint[]
+const ReactECharts = dynamic(() => import('echarts-for-react'), {
+  ssr: false,
+  loading: () => <Skeleton className="w-full h-full min-h-[200px]" />,
+})
+
+export interface PerformanceChartProps {
+  data: { date: string; value: number }[]
   loading?: boolean
   height?: number
-  currency?: string
-  showGrid?: boolean
+  grain?: '1W' | '1M' | '3M' | 'YTD' | '1Y'
 }
 
 export function PerformanceChart({
   data,
   loading = false,
   height = 280,
-  currency = 'USD',
-  showGrid = true,
 }: PerformanceChartProps) {
   const option = useMemo((): EChartsOption => {
-    const dates = data.map((d) => formatDate(d.date, 'MMM d'))
-    const values = data.map((d) => d.value)
+    const ACCENT = 'oklch(49% 0.116 60)'
+    const ACCENT_AREA_TOP = 'oklch(49% 0.116 60 / 0.15)'
+    const ACCENT_AREA_BOTTOM = 'oklch(49% 0.116 60 / 0)'
 
-    const minValue = Math.min(...values)
-    const maxValue = Math.max(...values)
-    const startValue = values[0] ?? 0
-    const endValue = values[values.length - 1] ?? 0
-    const isPositive = endValue >= startValue
-    const lineColor = isPositive ? '#2D6A4F' : '#7C2220'
-    const fillColorStart = isPositive ? 'rgba(45,106,79,0.15)' : 'rgba(124,34,32,0.15)'
-    const fillColorEnd = 'rgba(255,255,255,0)'
+    const seriesData = data.map((d) => [d.date, d.value])
 
     return {
       backgroundColor: 'transparent',
+      grid: {
+        left: 0,
+        right: 0,
+        top: 8,
+        bottom: 0,
+        containLabel: true,
+      },
+      xAxis: {
+        type: 'time',
+        axisLine: { show: false },
+        axisTick: { show: false },
+        splitLine: { show: false },
+        axisLabel: {
+          color: 'var(--text-muted)',
+          fontSize: 11,
+          fontFamily: 'var(--font-mono), "JetBrains Mono", monospace',
+        },
+      },
+      yAxis: {
+        type: 'value',
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: {
+          color: 'var(--text-muted)',
+          fontSize: 11,
+          fontFamily: 'var(--font-mono), "JetBrains Mono", monospace',
+          formatter: (value: number) => formatCurrency(value),
+        },
+        splitLine: {
+          show: true,
+          lineStyle: {
+            color: 'var(--border)',
+            type: 'dashed',
+            width: 1,
+          },
+        },
+      },
       tooltip: {
-        ...chartTheme.tooltip,
         trigger: 'axis',
+        backgroundColor: 'var(--surface-elevated)',
+        borderColor: 'var(--border)',
+        borderWidth: 1,
+        extraCssText:
+          'border-radius: 8px; box-shadow: var(--shadow-md); font-family: var(--font-mono), "JetBrains Mono", monospace;',
         axisPointer: {
           type: 'line',
           lineStyle: {
@@ -49,65 +85,28 @@ export function PerformanceChart({
           },
         },
         formatter: (params: unknown) => {
-          const paramsArr = params as Array<{ name: string; value: number }>
-          const point = paramsArr[0]
-          if (!point) return ''
+          const arr = params as Array<{ name: string; value: [string, number] }>
+          const pt = arr[0]
+          if (!pt) return ''
+          const dateStr = new Date(pt.value[0]).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          })
           return `<div style="padding:4px 0">
-            <div style="color:var(--text-muted);font-size:11px;margin-bottom:4px">${point.name}</div>
-            <div style="font-weight:600;font-size:14px;color:var(--text-primary)">${formatCurrency(point.value, currency)}</div>
+            <div style="color:var(--text-muted);font-size:11px;margin-bottom:4px">${dateStr}</div>
+            <div style="font-weight:600;font-size:13px;color:var(--text-primary)">${formatCurrency(pt.value[1])}</div>
           </div>`
-        },
-      },
-      grid: {
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: showGrid ? 36 : 8,
-        containLabel: showGrid,
-      },
-      xAxis: {
-        type: 'category',
-        data: dates,
-        show: showGrid,
-        axisLabel: {
-          color: 'var(--text-muted)' as string,
-          fontSize: 11,
-          interval: Math.floor(dates.length / 6),
-          rotate: 0,
-        },
-        axisLine: { show: false },
-        axisTick: { show: false },
-        splitLine: { show: false },
-      },
-      yAxis: {
-        type: 'value',
-        show: showGrid,
-        min: minValue * 0.995,
-        max: maxValue * 1.005,
-        axisLabel: {
-          color: 'var(--text-muted)' as string,
-          fontSize: 11,
-          formatter: (value: number) => formatCurrency(value, currency),
-        },
-        axisLine: { show: false },
-        axisTick: { show: false },
-        splitLine: {
-          show: showGrid,
-          lineStyle: {
-            color: 'var(--border)' as string,
-            type: 'dashed',
-            opacity: 0.5,
-          },
         },
       },
       series: [
         {
           type: 'line',
-          data: values,
-          smooth: 0.4,
+          data: seriesData,
+          smooth: true,
           symbol: 'none',
           lineStyle: {
-            color: lineColor,
+            color: ACCENT,
             width: 2,
           },
           areaStyle: {
@@ -118,18 +117,16 @@ export function PerformanceChart({
               x2: 0,
               y2: 1,
               colorStops: [
-                { offset: 0, color: fillColorStart },
-                { offset: 1, color: fillColorEnd },
+                { offset: 0, color: ACCENT_AREA_TOP },
+                { offset: 1, color: ACCENT_AREA_BOTTOM },
               ],
             },
           },
-          emphasis: {
-            focus: 'series',
-          },
+          emphasis: { focus: 'series' },
         },
       ],
     }
-  }, [data, currency, showGrid])
+  }, [data])
 
   if (loading) {
     return <Skeleton style={{ height }} className="w-full rounded-lg" />

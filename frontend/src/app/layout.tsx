@@ -1,20 +1,32 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Playfair_Display } from 'next/font/google'
+import { Inter, Fraunces, JetBrains_Mono } from 'next/font/google'
 import { Toaster } from 'sonner'
 import { Providers } from './providers'
 import './globals.css'
 
 const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-inter',
+  variable: '--font-sans',
   display: 'swap',
+  preload: true,
+  weight: ['400', '600'],
 })
 
-const playfair = Playfair_Display({
+const fraunces = Fraunces({
   subsets: ['latin'],
-  variable: '--font-playfair',
+  variable: '--font-display',
   display: 'swap',
-  weight: ['400', '600', '700'],
+  preload: true,
+  weight: ['400', '700'],
+  axes: ['opsz'], // optical size axis for crisp KPI numbers at large sizes
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+  display: 'swap',
+  preload: false, // non-critical — only used in data cells and code blocks
+  weight: ['400', '500'],
 })
 
 export const metadata: Metadata = {
@@ -38,8 +50,13 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${inter.variable} ${fraunces.variable} ${jetbrainsMono.variable}`}
+    >
       <head>
+        {/* Inline theme init prevents FOUC on dark mode — runs before React hydrates */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -51,7 +68,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
+      <body className="font-sans antialiased">
         <Providers>
           {children}
           <Toaster
@@ -61,10 +78,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 background: 'var(--surface)',
                 border: '1px solid var(--border)',
                 color: 'var(--text-primary)',
-                boxShadow: '0 4px 12px rgba(26,15,12,0.12)',
-                borderRadius: '12px',
-                fontFamily: 'var(--font-inter)',
-                fontSize: '14px',
+                boxShadow: 'var(--shadow-md)',
+                borderRadius: 'var(--radius-lg)',
+                fontFamily: 'var(--font-sans)',
+                fontSize: '0.875rem',
               },
             }}
           />

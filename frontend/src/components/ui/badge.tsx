@@ -2,19 +2,34 @@ import * as React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
+// Badge: compact, 20px tall, 4px radius (rounded-sm)
+// All variants use the semantic palette from tokens.css
 const badgeVariants = cva(
-  'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2',
+  'inline-flex items-center rounded-sm px-1.5 h-5 text-xs font-medium border whitespace-nowrap',
   {
     variants: {
       variant: {
-        default: 'border-transparent bg-brand-primary text-text-inverse',
-        secondary: 'border-transparent bg-surface-muted text-text-secondary',
-        outline: 'border-border text-text-primary',
-        success: 'border-transparent bg-success-bg text-success',
-        warning: 'border-transparent bg-warning-bg text-warning',
-        danger: 'border-transparent bg-danger-bg text-danger',
-        info: 'border-transparent bg-info-bg text-info',
-        gold: 'border-transparent bg-brand-gold text-text-inverse',
+        // Neutral default — low-contrast, for status labels etc.
+        default:
+          'bg-surface-muted text-text-secondary border-border',
+        // Brand — Falu Red tint
+        brand:
+          'bg-brand-subtle text-brand-primary border-brand-muted',
+        // Semantic status variants
+        success:
+          'bg-success-bg text-success-text border-success-border',
+        warning:
+          'bg-warning-bg text-warning-text border-warning-border',
+        danger:
+          'bg-danger-bg text-danger-text border-danger-border',
+        info:
+          'bg-info-bg text-info-text border-info-border',
+        // Gold accent — for dividends, premium features
+        accent:
+          'bg-accent-subtle text-accent-text border-accent/20',
+        // Outline variant — minimal, just a border
+        outline:
+          'bg-transparent text-text-secondary border-border',
       },
     },
     defaultVariants: {
@@ -24,11 +39,65 @@ const badgeVariants = cva(
 )
 
 export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends React.HTMLAttributes<HTMLSpanElement>,
     VariantProps<typeof badgeVariants> {}
 
 function Badge({ className, variant, ...props }: BadgeProps) {
-  return <div className={cn(badgeVariants({ variant }), className)} {...props} />
+  return <span className={cn(badgeVariants({ variant }), className)} {...props} />
 }
 
-export { Badge, badgeVariants }
+// ── Asset type badge helpers ──
+// Maps instrument type strings to badge variants for consistent rendering across tables
+const assetTypeBadgeVariant: Record<string, VariantProps<typeof badgeVariants>['variant']> = {
+  EQUITY:   'default',
+  STOCK:    'default',
+  ETF:      'info',
+  BOND:     'success',
+  FIXED_INCOME: 'success',
+  CRYPTO:   'warning',
+  REAL_ESTATE: 'accent',
+  COMMODITY: 'accent',
+  CASH:     'outline',
+  OTHER:    'outline',
+}
+
+function AssetTypeBadge({
+  type,
+  className,
+  ...props
+}: { type: string } & Omit<BadgeProps, 'variant'>) {
+  const variant = assetTypeBadgeVariant[type?.toUpperCase()] ?? 'default'
+  return (
+    <Badge variant={variant} className={className} {...props}>
+      {type}
+    </Badge>
+  )
+}
+
+// ── Transaction type badge helpers ──
+// BUY → success, SELL → danger, DIVIDEND → accent, DEPOSIT/WITHDRAWAL → info
+const txTypeBadgeVariant: Record<string, VariantProps<typeof badgeVariants>['variant']> = {
+  BUY:        'success',
+  SELL:       'danger',
+  DIVIDEND:   'accent',
+  DEPOSIT:    'info',
+  WITHDRAWAL: 'warning',
+  TRANSFER:   'default',
+  FEE:        'outline',
+  OTHER:      'outline',
+}
+
+function TransactionTypeBadge({
+  type,
+  className,
+  ...props
+}: { type: string } & Omit<BadgeProps, 'variant'>) {
+  const variant = txTypeBadgeVariant[type?.toUpperCase()] ?? 'default'
+  return (
+    <Badge variant={variant} className={className} {...props}>
+      {type}
+    </Badge>
+  )
+}
+
+export { Badge, badgeVariants, AssetTypeBadge, TransactionTypeBadge }

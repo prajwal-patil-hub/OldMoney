@@ -4,29 +4,46 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-button text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+  // Base: flex layout, rounded (6px — never pill), no pointer-events when disabled
+  [
+    'inline-flex items-center justify-center gap-2 whitespace-nowrap',
+    'rounded font-semibold select-none',
+    'transition-colors duration-[120ms] ease-standard',
+    'focus-visible:outline-none focus-visible:ring-2',
+    'focus-visible:ring-brand-primary/40 focus-visible:ring-offset-2',
+    'focus-visible:ring-offset-surface',
+    'disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none',
+    '[&_svg]:pointer-events-none [&_svg]:shrink-0',
+  ].join(' '),
   {
     variants: {
       variant: {
+        // Primary action — Falu Red, cream text
         default:
-          'bg-brand-primary text-text-inverse hover:bg-brand-primary-hover active:shadow-card-inset',
+          'bg-brand-primary text-text-inverse hover:bg-brand-hover active:bg-brand-active',
+        // Secondary — surface bg, hairline border
         secondary:
-          'bg-surface-muted text-text-primary border border-border hover:bg-border hover:border-border-strong',
-        outline:
-          'border border-border bg-transparent text-text-primary hover:bg-surface-muted hover:border-border-strong',
-        ghost: 'text-text-secondary hover:bg-surface-muted hover:text-text-primary',
+          'bg-surface text-text-primary border border-border hover:bg-surface-muted hover:border-border-strong',
+        // Ghost — transparent, text-only
+        ghost:
+          'text-text-secondary hover:bg-surface-muted hover:text-text-primary',
+        // Destructive — danger palette, hairline border for "I mean it" feel
         destructive:
-          'bg-danger text-text-inverse hover:opacity-90 active:shadow-card-inset',
-        link: 'text-brand-primary underline-offset-4 hover:underline p-0 h-auto',
-        gold: 'bg-brand-gold text-text-inverse hover:opacity-90 active:shadow-card-inset',
+          'bg-danger-bg text-danger-text border border-danger-border hover:bg-danger/20',
+        // Link style — no background
+        link:
+          'text-brand-primary underline-offset-4 hover:underline p-0 h-auto',
       },
       size: {
-        default: 'h-9 px-4 py-2',
-        sm: 'h-8 rounded-button px-3 text-xs',
-        lg: 'h-11 rounded-button px-6 text-base',
-        xl: 'h-12 rounded-button px-8 text-base',
-        icon: 'h-9 w-9',
-        'icon-sm': 'h-8 w-8',
+        sm:      'h-7 px-2.5 text-xs [&_svg]:size-3',
+        default: 'h-[34px] px-3.5 text-sm [&_svg]:size-4',
+        lg:      'h-10 px-4 text-base [&_svg]:size-4',
+        // Icon: square button, same height as default
+        icon:    'h-[34px] w-[34px] [&_svg]:size-4',
+        // Icon-sm: square button, same height as sm
+        'icon-sm': 'h-7 w-7 [&_svg]:size-3.5',
+        // Icon-lg: square button, same height as lg
+        'icon-lg': 'h-10 w-10 [&_svg]:size-4',
       },
     },
     defaultVariants: {
@@ -44,19 +61,23 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, loading = false, children, disabled, ...props }, ref) => {
+  (
+    { className, variant, size, asChild = false, loading = false, children, disabled, ...props },
+    ref
+  ) => {
     const Comp = asChild ? Slot : 'button'
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         disabled={disabled || loading}
+        aria-disabled={disabled || loading}
         {...props}
       >
         {loading ? (
           <>
             <svg
-              className="animate-spin size-4"
+              className="animate-spin size-4 shrink-0"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
