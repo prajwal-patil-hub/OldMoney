@@ -28,7 +28,8 @@ import {
   useTopHoldings,
 } from '@/lib/hooks/useHoldings'
 import { useRecentTransactions } from '@/lib/hooks/useTransactions'
-import type { TransactionType } from '@/types/transaction'
+import type { Holding as ApiHolding } from '@/types/portfolio'
+import type { Transaction, TransactionType } from '@/types/transaction'
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
@@ -272,7 +273,7 @@ function HoldingsSection() {
 
   // Map API Holding → HoldingsTable Holding (both shapes are compatible here)
   const holdings: Holding[] = rawHoldings?.length
-    ? rawHoldings.map((h) => ({
+    ? rawHoldings.map((h: ApiHolding) => ({
         id: h.id,
         asset_name: h.asset_name,
         asset_symbol: h.asset_symbol,
@@ -360,7 +361,7 @@ function RecentTransactionsSection() {
           />
         ) : (
           <div>
-            {transactions.map((txn) => {
+            {transactions.map((txn: Transaction) => {
               const isCredit = CREDIT_TYPES.has(txn.transaction_type)
               const TxnIcon = isCredit ? TrendingUp : TrendingDown
               return (
@@ -399,10 +400,10 @@ function RecentTransactionsSection() {
                     {/* Row 2: type badge + account + date */}
                     <div className="flex items-center gap-2 mt-0.5">
                       <Badge
-                        variant={isCredit ? 'success' : 'danger'}
+                        variant={(isCredit ? 'success' : 'danger') as 'success' | 'danger'}
                         className="text-[10px] py-0 px-1.5 h-4"
                       >
-                        {TRANSACTION_TYPE_LABELS[txn.transaction_type]}
+                        {TRANSACTION_TYPE_LABELS[txn.transaction_type as TransactionType]}
                       </Badge>
                       {txn.account && (
                         <span className="text-xs text-text-muted truncate">

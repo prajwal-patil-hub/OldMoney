@@ -1,5 +1,6 @@
 'use client'
 
+import * as React from 'react'
 import { useState, useCallback } from 'react'
 import { Plus, Download, ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
@@ -126,7 +127,7 @@ function AddTransactionForm({ onSuccess, onCancel }: AddTransactionFormProps) {
     return Object.keys(errs).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!validate()) return
     createTransaction(formData as CreateTransactionInput, {
