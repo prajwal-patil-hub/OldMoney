@@ -2,488 +2,425 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Eye, EyeOff, Lock, Mail, User, Building2, Hash, ChevronRight, ChevronLeft, Check } from 'lucide-react'
-import { useAuth } from '@/lib/hooks/useAuth'
+import { useRouter } from 'next/navigation'
+import { Eye, EyeOff, Check } from 'lucide-react'
+import api from '@/lib/api'
+import { useAuthStore } from '@/store/auth.store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { slugify } from '@/lib/utils'
-import { cn } from '@/lib/utils'
+import { cn, slugify } from '@/lib/utils'
+import type { AuthResponse } from '@/types/api'
 
-type Step = 'account' | 'organization'
+// ─── Password strength ────────────────────────────────────────────────────────
 
-interface FormData {
-  email: string
-  password: string
-  confirmPassword: string
-  full_name: string
-  org_name: string
-  org_slug: string
+interface PasswordStrength {
+  score: 1 | 2 | 3 | 4
+  label: 'Weak' | 'Fair' | 'Good' | 'Strong'
 }
 
-interface FormErrors {
+function getPasswordStrength(pwd: string): PasswordStrength | null {
+  if (!pwd) return null
+  const hasLen = pwd.length >= 8
+  const hasUpper = /[A-Z]/.test(pwd)
+  const hasNumber = /[0-9]/.test(pwd)
+  const hasSpecial = /[^A-Za-z0-9]/.test(pwd)
+
+  if (!hasLen) return { score: 1, label: 'Weak' }
+  if (hasLen && !hasUpper) return { score: 2, label: 'Fair' }
+  if (hasLen && hasUpper && !hasNumber) return { score: 3, label: 'Good' }
+  if (hasLen && hasUpper && hasNumber && hasSpecial) return { score: 4, label: 'Strong' }
+  return { score: 3, label: 'Good' }
+}
+
+const STRENGTH_COLORS: Record<string, string> = {
+  Weak: 'bg-danger',
+  Fair: 'bg-warning',
+  Good: 'bg-warning',
+  Strong: 'bg-success',
+}
+
+const STRENGTH_TEXT: Record<string, string> = {
+  Weak: 'text-danger-text',
+  Fair: 'text-warning-text',
+  Good: 'text-warning-text',
+  Strong: 'text-success-text',
+}
+
+// ─── Step 1 form state ────────────────────────────────────────────────────────
+
+interface Step1Data {
+  fullName: string
+  email: string
+  password: string
+}
+
+interface Step1Errors {
+  fullName?: string
   email?: string
   password?: string
-  confirmPassword?: string
-  full_name?: string
-  org_name?: string
-  org_slug?: string
+}
+
+// ─── Step 2 form state ────────────────────────────────────────────────────────
+
+interface Step2Data {
+  orgName: string
+  slug: string
+}
+
+interface Step2Errors {
+  orgName?: string
+  slug?: string
   form?: string
 }
 
-const STEPS: { id: Step; label: string }[] = [
-  { id: 'account', label: 'Account' },
-  { id: 'organization', label: 'Organization' },
-]
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function RegisterPage() {
-  const { registerAsync, isRegistering } = useAuth()
-  const [step, setStep] = useState<Step>('account')
+  const router = useRouter()
+  const setAuth = useAuthStore((s) => s.setAuth)
+
+  const [step, setStep] = useState<1 | 2>(1)
+  const [isLoading, setIsLoading] = useState(false)
+
+  // Step 1
+  const [step1, setStep1] = useState<Step1Data>({ fullName: '', email: '', password: '' })
+  const [step1Errors, setStep1Errors] = useState<Step1Errors>({})
   const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  const [formData, setFormData] = useState<FormData>({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    full_name: '',
-    org_name: '',
-    org_slug: '',
-  })
-  const [errors, setErrors] = useState<FormErrors>({})
+  // Step 2
+  const [step2, setStep2] = useState<Step2Data>({ orgName: '', slug: '' })
+  const [step2Errors, setStep2Errors] = useState<Step2Errors>({})
 
-  const updateField = <K extends keyof FormData>(key: K, value: FormData[K]) => {
-    setFormData((prev) => {
-      const updated = { ...prev, [key]: value }
-      // Auto-generate slug from org name
-      if (key === 'org_name') {
-        updated.org_slug = slugify(value as string)
-      }
-      return updated
-    })
-    if (errors[key]) {
-      setErrors((prev) => {
-        const next = { ...prev }
-        delete next[key]
-        return next
-      })
+  const passwordStrength = getPasswordStrength(step1.password)
+
+  const pwdReqs = [
+    { label: 'At least 8 characters', met: step1.password.length >= 8 },
+    { label: 'One uppercase letter', met: /[A-Z]/.test(step1.password) },
+    { label: 'One number', met: /[0-9]/.test(step1.password) },
+    { label: 'One special character', met: /[^A-Za-z0-9]/.test(step1.password) },
+  ]
+
+  function validateStep1(): boolean {
+    const errs: Step1Errors = {}
+    if (!step1.fullName.trim()) errs.fullName = 'Full name is required.'
+    if (!step1.email.trim()) {
+      errs.email = 'Email is required.'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(step1.email.trim())) {
+      errs.email = 'Enter a valid email address.'
     }
+    if (!step1.password) {
+      errs.password = 'Password is required.'
+    } else if (step1.password.length < 8) {
+      errs.password = 'Password must be at least 8 characters.'
+    }
+    setStep1Errors(errs)
+    return Object.keys(errs).length === 0
   }
 
-  const validateStep1 = (): boolean => {
-    const newErrors: FormErrors = {}
-    if (!formData.full_name.trim()) newErrors.full_name = 'Full name is required'
-    if (!formData.email) {
-      newErrors.email = 'Email is required'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Invalid email address'
+  function validateStep2(): boolean {
+    const errs: Step2Errors = {}
+    if (!step2.orgName.trim()) errs.orgName = 'Organization name is required.'
+    if (!step2.slug.trim()) {
+      errs.slug = 'Slug is required.'
+    } else if (!/^[a-z0-9-]+$/.test(step2.slug)) {
+      errs.slug = 'Only lowercase letters, numbers, and hyphens.'
     }
-    if (!formData.password) {
-      newErrors.password = 'Password is required'
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters'
-    }
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match'
-    }
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    setStep2Errors(errs)
+    return Object.keys(errs).length === 0
   }
 
-  const validateStep2 = (): boolean => {
-    const newErrors: FormErrors = {}
-    if (!formData.org_name.trim()) newErrors.org_name = 'Organization name is required'
-    if (!formData.org_slug.trim()) {
-      newErrors.org_slug = 'Slug is required'
-    } else if (!/^[a-z0-9-]+$/.test(formData.org_slug)) {
-      newErrors.org_slug = 'Slug can only contain lowercase letters, numbers, and hyphens'
-    }
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+  function handleNext(e: React.FormEvent) {
+    e.preventDefault()
+    if (validateStep1()) setStep(2)
   }
 
-  const handleNext = () => {
-    if (step === 'account' && validateStep1()) {
-      setStep('organization')
-    }
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!validateStep2()) return
+    setIsLoading(true)
+    setStep2Errors({})
 
     try {
-      await registerAsync({
-        email: formData.email,
-        password: formData.password,
-        full_name: formData.full_name,
-        org_name: formData.org_name,
-        org_slug: formData.org_slug,
+      // Register user
+      const regRes = await api.post<AuthResponse>('/auth/register', {
+        email: step1.email.trim(),
+        password: step1.password,
+        full_name: step1.fullName.trim(),
       })
+      const { access_token } = regRes.data
+      setAuth(regRes.data)
+
+      // Create org
+      await api.post(
+        '/orgs',
+        { name: step2.orgName.trim(), slug: step2.slug },
+        { headers: { Authorization: `Bearer ${access_token}` } }
+      )
+
+      router.push('/dashboard')
     } catch {
-      setErrors({ form: 'Registration failed. Please try again.' })
+      setStep2Errors({ form: 'Registration failed. Please try again.' })
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const stepIndex = STEPS.findIndex((s) => s.id === step)
-
-  const passwordStrength = (pwd: string): { score: number; label: string; color: string } => {
-    if (!pwd) return { score: 0, label: '', color: '' }
-    let score = 0
-    if (pwd.length >= 8) score++
-    if (pwd.length >= 12) score++
-    if (/[A-Z]/.test(pwd)) score++
-    if (/[0-9]/.test(pwd)) score++
-    if (/[^A-Za-z0-9]/.test(pwd)) score++
-
-    if (score <= 1) return { score, label: 'Weak', color: 'bg-danger' }
-    if (score <= 3) return { score, label: 'Fair', color: 'bg-warning' }
-    return { score, label: 'Strong', color: 'bg-success' }
-  }
-
-  const pwdStrength = passwordStrength(formData.password)
-
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      {/* Background pattern */}
-      <div
-        className="fixed inset-0 opacity-30 pointer-events-none"
-        aria-hidden="true"
-        style={{
-          backgroundImage: `radial-gradient(circle at 75% 25%, rgba(124,34,32,0.08) 0%, transparent 50%),
-                           radial-gradient(circle at 25% 75%, rgba(159,105,32,0.06) 0%, transparent 50%)`,
-        }}
-      />
-
-      <div className="w-full max-w-md relative">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-4">
-            <div className="size-12 rounded-xl bg-brand-primary flex items-center justify-center shadow-card">
-              <span className="text-lg font-bold text-text-inverse font-display">OM</span>
-            </div>
-          </div>
-          <h1 className="text-3xl font-bold font-display tracking-heading text-text-primary">
-            OldMoney
-          </h1>
-          <p className="text-text-muted text-sm mt-1">Wealth Intelligence, Refined</p>
+    <div>
+      {/* Step indicator */}
+      <div className="mb-6">
+        <p className="text-xs text-text-muted mb-2">Step {step} of 2</p>
+        <div className="h-0.5 bg-border rounded-full overflow-hidden">
+          <div
+            className="h-full bg-brand-primary rounded-full transition-all duration-normal ease-decel"
+            style={{ width: step === 1 ? '50%' : '100%' }}
+            aria-hidden="true"
+          />
         </div>
+      </div>
 
-        <div className="bg-surface rounded-card border border-border shadow-card-hover p-8">
-          {/* Step indicators */}
-          <div className="flex items-center mb-6" role="list" aria-label="Registration steps">
-            {STEPS.map((s, i) => {
-              const isCompleted = i < stepIndex
-              const isCurrent = s.id === step
+      {step === 1 && (
+        <>
+          <h1 className="font-display text-2xl font-bold text-text-primary tracking-tight">
+            Create your account
+          </h1>
+          <p className="text-sm text-text-muted mt-1">Start your wealth intelligence journey</p>
 
-              return (
-                <div key={s.id} className="flex items-center flex-1" role="listitem">
-                  <div className="flex flex-col items-center gap-1">
-                    <div
-                      className={cn(
-                        'size-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-200',
-                        isCompleted
-                          ? 'bg-success text-text-inverse'
-                          : isCurrent
-                          ? 'bg-brand-primary text-text-inverse'
-                          : 'bg-surface-muted text-text-muted border border-border'
-                      )}
-                      aria-current={isCurrent ? 'step' : undefined}
-                    >
-                      {isCompleted ? (
-                        <Check className="size-3.5" aria-hidden="true" />
-                      ) : (
-                        i + 1
-                      )}
-                    </div>
+          <form onSubmit={handleNext} className="mt-8 space-y-5" noValidate>
+            {/* Full name */}
+            <div>
+              <label htmlFor="full-name" className="block text-xs text-text-secondary mb-1.5 font-medium">
+                Full Name
+              </label>
+              <Input
+                id="full-name"
+                type="text"
+                autoComplete="name"
+                autoFocus
+                placeholder="Jane Smith"
+                value={step1.fullName}
+                onChange={(e) => {
+                  setStep1((p) => ({ ...p, fullName: e.target.value }))
+                  if (step1Errors.fullName) setStep1Errors((p) => ({ ...p, fullName: undefined }))
+                }}
+                error={step1Errors.fullName}
+                disabled={isLoading}
+              />
+            </div>
+
+            {/* Email */}
+            <div>
+              <label htmlFor="email" className="block text-xs text-text-secondary mb-1.5 font-medium">
+                Email address
+              </label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={step1.email}
+                onChange={(e) => {
+                  setStep1((p) => ({ ...p, email: e.target.value }))
+                  if (step1Errors.email) setStep1Errors((p) => ({ ...p, email: undefined }))
+                }}
+                error={step1Errors.email}
+                disabled={isLoading}
+              />
+            </div>
+
+            {/* Password */}
+            <div>
+              <label htmlFor="password" className="block text-xs text-text-secondary mb-1.5 font-medium">
+                Password
+              </label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  placeholder="Min. 8 characters"
+                  value={step1.password}
+                  onChange={(e) => {
+                    setStep1((p) => ({ ...p, password: e.target.value }))
+                    if (step1Errors.password) setStep1Errors((p) => ({ ...p, password: undefined }))
+                  }}
+                  error={step1Errors.password}
+                  disabled={isLoading}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-2.5 top-[9px] text-text-muted hover:text-text-primary transition-colors duration-fast"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="size-4" aria-hidden="true" />
+                  ) : (
+                    <Eye className="size-4" aria-hidden="true" />
+                  )}
+                </button>
+              </div>
+
+              {/* Strength dots */}
+              {step1.password && passwordStrength && (
+                <div className="mt-2 space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    {([1, 2, 3, 4] as const).map((n) => (
+                      <div
+                        key={n}
+                        className={cn(
+                          'h-1 flex-1 rounded-full transition-colors duration-normal',
+                          n <= passwordStrength.score
+                            ? STRENGTH_COLORS[passwordStrength.label]
+                            : 'bg-border'
+                        )}
+                        aria-hidden="true"
+                      />
+                    ))}
                     <span
                       className={cn(
-                        'text-xs',
-                        isCurrent ? 'text-text-primary font-medium' : 'text-text-muted'
+                        'text-xs ml-1 font-medium',
+                        STRENGTH_TEXT[passwordStrength.label]
                       )}
                     >
-                      {s.label}
+                      {passwordStrength.label}
                     </span>
                   </div>
-                  {i < STEPS.length - 1 && (
-                    <div
-                      className={cn(
-                        'flex-1 h-0.5 mb-5 mx-2 transition-colors duration-200',
-                        isCompleted ? 'bg-success' : 'bg-border'
-                      )}
-                      aria-hidden="true"
-                    />
-                  )}
-                </div>
-              )
-            })}
-          </div>
 
-          {/* Form error */}
-          {errors.form && (
-            <div
-              className="mb-4 p-3 rounded-lg bg-danger-bg border border-danger/20 text-sm text-danger"
-              role="alert"
-            >
-              {errors.form}
-            </div>
-          )}
-
-          {/* Step 1: Account */}
-          {step === 'account' && (
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-xl font-semibold tracking-heading text-text-primary">
-                  Create your account
-                </h2>
-                <p className="text-sm text-text-muted mt-1">
-                  Start your wealth intelligence journey
-                </p>
-              </div>
-
-              {/* Full name */}
-              <div className="space-y-1.5">
-                <label htmlFor="full-name" className="text-sm font-medium text-text-primary">
-                  Full Name <span className="text-danger">*</span>
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-text-muted" aria-hidden="true" />
-                  <Input
-                    id="full-name"
-                    value={formData.full_name}
-                    onChange={(e) => updateField('full_name', e.target.value)}
-                    placeholder="John Smith"
-                    error={errors.full_name}
-                    className="pl-9"
-                    autoComplete="name"
-                    autoFocus
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Email */}
-              <div className="space-y-1.5">
-                <label htmlFor="register-email" className="text-sm font-medium text-text-primary">
-                  Email Address <span className="text-danger">*</span>
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-text-muted" aria-hidden="true" />
-                  <Input
-                    id="register-email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => updateField('email', e.target.value)}
-                    placeholder="you@example.com"
-                    error={errors.email}
-                    className="pl-9"
-                    autoComplete="email"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Password */}
-              <div className="space-y-1.5">
-                <label htmlFor="register-password" className="text-sm font-medium text-text-primary">
-                  Password <span className="text-danger">*</span>
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-text-muted" aria-hidden="true" />
-                  <Input
-                    id="register-password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={formData.password}
-                    onChange={(e) => updateField('password', e.target.value)}
-                    placeholder="Min. 8 characters"
-                    error={errors.password}
-                    className="pl-9 pr-10"
-                    autoComplete="new-password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary transition-colors"
-                    onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                  </button>
-                </div>
-
-                {/* Password strength */}
-                {formData.password && (
-                  <div className="space-y-1">
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <div
-                          key={i}
+                  {/* Requirements */}
+                  <ul className="space-y-1">
+                    {pwdReqs.map((req) => (
+                      <li
+                        key={req.label}
+                        className={cn(
+                          'flex items-center gap-1.5 text-xs transition-colors duration-fast',
+                          req.met ? 'text-success-text' : 'text-text-muted'
+                        )}
+                      >
+                        <Check
                           className={cn(
-                            'h-1 flex-1 rounded-full transition-all duration-300',
-                            i <= pwdStrength.score ? pwdStrength.color : 'bg-border'
+                            'size-3 shrink-0 transition-opacity duration-fast',
+                            req.met ? 'opacity-100' : 'opacity-30'
                           )}
                           aria-hidden="true"
                         />
-                      ))}
-                    </div>
-                    <p className="text-xs text-text-muted">
-                      Password strength:{' '}
-                      <span
-                        className={cn(
-                          'font-medium',
-                          pwdStrength.color === 'bg-danger' && 'text-danger',
-                          pwdStrength.color === 'bg-warning' && 'text-warning',
-                          pwdStrength.color === 'bg-success' && 'text-success'
-                        )}
-                      >
-                        {pwdStrength.label}
-                      </span>
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Confirm password */}
-              <div className="space-y-1.5">
-                <label htmlFor="confirm-password" className="text-sm font-medium text-text-primary">
-                  Confirm Password <span className="text-danger">*</span>
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-text-muted" aria-hidden="true" />
-                  <Input
-                    id="confirm-password"
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    value={formData.confirmPassword}
-                    onChange={(e) => updateField('confirmPassword', e.target.value)}
-                    placeholder="Repeat your password"
-                    error={errors.confirmPassword}
-                    className="pl-9 pr-10"
-                    autoComplete="new-password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary transition-colors"
-                    onClick={() => setShowConfirmPassword((v) => !v)}
-                    aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
-                  >
-                    {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                  </button>
+                        {req.label}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              </div>
-
-              <Button type="button" onClick={handleNext} className="w-full" size="lg">
-                Continue
-                <ChevronRight className="size-4" aria-hidden="true" />
-              </Button>
+              )}
             </div>
-          )}
 
-          {/* Step 2: Organization */}
-          {step === 'organization' && (
-            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-              <div>
-                <h2 className="text-xl font-semibold tracking-heading text-text-primary">
-                  Set up your organization
-                </h2>
-                <p className="text-sm text-text-muted mt-1">
-                  Your organization holds your portfolios and team
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              Continue
+            </Button>
+          </form>
+        </>
+      )}
+
+      {step === 2 && (
+        <>
+          <h1 className="font-display text-2xl font-bold text-text-primary tracking-tight">
+            Set up your workspace
+          </h1>
+          <p className="text-sm text-text-muted mt-1">Create an organization to manage portfolios</p>
+
+          <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
+            {/* Form-level error */}
+            {step2Errors.form && (
+              <div
+                role="alert"
+                className="px-3 py-2 rounded bg-danger-bg border border-danger/20 text-sm text-danger-text"
+              >
+                {step2Errors.form}
+              </div>
+            )}
+
+            {/* Org name */}
+            <div>
+              <label htmlFor="org-name" className="block text-xs text-text-secondary mb-1.5 font-medium">
+                Organization name
+              </label>
+              <Input
+                id="org-name"
+                type="text"
+                autoFocus
+                placeholder="Smith Family Office"
+                value={step2.orgName}
+                onChange={(e) => {
+                  const name = e.target.value
+                  setStep2((p) => ({
+                    orgName: name,
+                    slug: p.slug === slugify(p.orgName) ? slugify(name) : p.slug,
+                  }))
+                  if (step2Errors.orgName) setStep2Errors((p) => ({ ...p, orgName: undefined }))
+                }}
+                error={step2Errors.orgName}
+                disabled={isLoading}
+              />
+            </div>
+
+            {/* Slug */}
+            <div>
+              <label htmlFor="org-slug" className="block text-xs text-text-secondary mb-1.5 font-medium">
+                Slug
+              </label>
+              <Input
+                id="org-slug"
+                type="text"
+                placeholder="smith-family-office"
+                value={step2.slug}
+                onChange={(e) => {
+                  setStep2((p) => ({
+                    ...p,
+                    slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+                  }))
+                  if (step2Errors.slug) setStep2Errors((p) => ({ ...p, slug: undefined }))
+                }}
+                error={step2Errors.slug}
+                disabled={isLoading}
+                className="font-mono"
+              />
+              {step2.slug && (
+                <p className="mt-1.5 text-xs text-text-muted font-mono">
+                  oldmoney.app/{step2.slug}
                 </p>
-              </div>
+              )}
+            </div>
 
-              {/* Org name */}
-              <div className="space-y-1.5">
-                <label htmlFor="org-name" className="text-sm font-medium text-text-primary">
-                  Organization Name <span className="text-danger">*</span>
-                </label>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-text-muted" aria-hidden="true" />
-                  <Input
-                    id="org-name"
-                    value={formData.org_name}
-                    onChange={(e) => updateField('org_name', e.target.value)}
-                    placeholder="e.g., Smith Family Office"
-                    error={errors.org_name}
-                    className="pl-9"
-                    autoFocus
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Org slug */}
-              <div className="space-y-1.5">
-                <label htmlFor="org-slug" className="text-sm font-medium text-text-primary">
-                  Organization Slug <span className="text-danger">*</span>
-                </label>
-                <div className="relative">
-                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-text-muted" aria-hidden="true" />
-                  <Input
-                    id="org-slug"
-                    value={formData.org_slug}
-                    onChange={(e) => updateField('org_slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
-                    placeholder="smith-family-office"
-                    error={errors.org_slug}
-                    className="pl-9 font-mono"
-                    pattern="[a-z0-9-]+"
-                    required
-                  />
-                </div>
-                <p className="text-xs text-text-muted">
-                  Used in URLs. Only lowercase letters, numbers, and hyphens.
-                </p>
-              </div>
-
-              {/* Plan selection (simplified) */}
-              <div className="p-4 rounded-lg bg-surface-muted border border-border">
-                <div className="flex items-start gap-3">
-                  <div className="size-8 rounded-lg bg-brand-gold/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-brand-gold text-sm font-bold">★</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-text-primary">Starting with Free Plan</p>
-                    <p className="text-xs text-text-muted mt-0.5">
-                      Up to 5 portfolios · 1 user · Core analytics
-                    </p>
-                    <p className="text-xs text-brand-primary mt-1 font-medium">
-                      Upgrade anytime from Settings
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setStep('account')}
-                  className="flex-1"
-                >
-                  <ChevronLeft className="size-4" aria-hidden="true" />
-                  Back
-                </Button>
-                <Button type="submit" loading={isRegistering} className="flex-1" size="lg">
-                  Create Account
-                </Button>
-              </div>
-            </form>
-          )}
-
-          {/* Login link */}
-          <p className="text-center text-sm text-text-muted mt-4">
-            Already have an account?{' '}
-            <Link
-              href="/login"
-              className="font-medium text-brand-primary hover:text-brand-primary-hover transition-colors"
+            <Button
+              type="submit"
+              className="w-full"
+              loading={isLoading}
+              disabled={isLoading}
             >
-              Sign in
-            </Link>
-          </p>
-        </div>
+              Create workspace
+            </Button>
+          </form>
 
-        <p className="text-center text-xs text-text-muted mt-6">
-          By creating an account, you agree to our Terms of Service.
-        </p>
-      </div>
+          <button
+            type="button"
+            onClick={() => setStep(1)}
+            className="mt-4 text-sm text-text-muted hover:text-text-primary transition-colors duration-fast"
+          >
+            ← Back to account details
+          </button>
+        </>
+      )}
+
+      {/* Sign in link */}
+      <p className="mt-8 text-sm text-text-muted text-center">
+        Already have an account?{' '}
+        <Link
+          href="/login"
+          className="text-brand-primary hover:underline underline-offset-4 transition-colors duration-fast"
+        >
+          Sign in
+        </Link>
+      </p>
     </div>
   )
 }

@@ -1,7 +1,8 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
+import * as React from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   Briefcase,
@@ -9,14 +10,15 @@ import {
   ArrowLeftRight,
   Upload,
   Sparkles,
+  GitFork,
   Settings2,
   PanelLeftClose,
   PanelLeftOpen,
+  LogOut,
+  User,
   Building2,
   ChevronDown,
-  LogOut,
 } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/ui.store'
 import { useAuthStore } from '@/store/auth.store'
@@ -32,207 +34,281 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/portfolios', label: 'Portfolios', icon: Briefcase },
-  { href: '/assets', label: 'Assets', icon: TrendingUp },
+  { href: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
+  { href: '/portfolios',   label: 'Portfolios',   icon: Briefcase },
+  { href: '/assets',       label: 'Assets',       icon: TrendingUp },
   { href: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
-  { href: '/imports', label: 'Import', icon: Upload },
-  { href: '/ai', label: 'AI Copilot', icon: Sparkles },
-  { href: '/settings', label: 'Settings', icon: Settings2 },
+  { href: '/imports',      label: 'Import',       icon: Upload },
+  { href: '/ai',           label: 'AI Copilot',   icon: Sparkles, accent: true },
+  { href: '/ownership',    label: 'Ownership',    icon: GitFork },
+  { href: '/settings',     label: 'Settings',     icon: Settings2 },
 ] as const
 
-export function Sidebar() {
+/** Returns true when the nav item's path is active given the current pathname */
+function useIsActive(href: string) {
   const pathname = usePathname()
+  if (href === '/dashboard') return pathname === '/dashboard'
+  return pathname.startsWith(href)
+}
+
+// ── Single nav item ──
+interface NavItemProps {
+  href: string
+  label: string
+  icon: React.ElementType
+  collapsed: boolean
+  accent?: boolean
+}
+
+function NavItem({ href, label, icon: Icon, collapsed, accent }: NavItemProps) {
+  const active = useIsActive(href)
+
+  const inner = (
+    <Link
+      href={href}
+      className={cn(
+        'relative flex items-center h-9 rounded transition-all duration-[120ms] ease-standard',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40',
+        collapsed ? 'w-9 justify-center px-0' : 'gap-2.5 px-3',
+        active
+          ? 'bg-brand-subtle text-brand-primary'
+          : 'text-text-secondary hover:bg-surface-muted hover:text-text-primary'
+      )}
+      aria-current={active ? 'page' : undefined}
+    >
+      {/* Active left accent line — absolute, vertically centered */}
+      {active && (
+        <span
+          className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-brand-primary rounded-full"
+          aria-hidden="true"
+        />
+      )}
+      <Icon
+        className={cn(
+          'size-4 shrink-0 transition-colors duration-[120ms]',
+          active
+            ? 'text-brand-primary'
+            : accent
+              ? 'text-accent-text'
+              : 'text-text-muted'
+        )}
+        aria-hidden="true"
+      />
+      {!collapsed && (
+        <span
+          className={cn(
+            'text-sm font-medium truncate',
+            active ? 'text-brand-primary' : undefined,
+            // Subtle gold styling for AI Copilot when inactive
+            accent && !active ? 'text-accent-text' : undefined
+          )}
+        >
+          {label}
+        </span>
+      )}
+    </Link>
+  )
+
+  if (collapsed) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{inner}</TooltipTrigger>
+        <TooltipContent side="right">{label}</TooltipContent>
+      </Tooltip>
+    )
+  }
+
+  return inner
+}
+
+// ── User initials helper ──
+function getInitials(fullName?: string | null, email?: string | null): string {
+  if (fullName) {
+    const parts = fullName.trim().split(/\s+/)
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    return fullName.slice(0, 2).toUpperCase()
+  }
+  return (email?.charAt(0) ?? 'U').toUpperCase()
+}
+
+// ── Org monogram (2 chars from name) ──
+function getOrgMonogram(name?: string | null): string {
+  if (!name) return 'OM'
+  const words = name.trim().split(/\s+/)
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase()
+  return name.slice(0, 2).toUpperCase()
+}
+
+export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar } = useUIStore()
   const { activeOrg } = useAuthStore()
   const { user, logout } = useAuth()
 
-  const isActive = (href: string) => {
-    if (href === '/dashboard') return pathname === '/dashboard'
-    return pathname.startsWith(href)
-  }
+  const initials = getInitials(user?.full_name, user?.email)
+  const orgMonogram = getOrgMonogram(activeOrg?.name)
 
   return (
-    <motion.aside
-      initial={false}
-      animate={{ width: sidebarCollapsed ? 72 : 240 }}
-      transition={{ duration: 0.2, ease: 'easeInOut' }}
+    <aside
+      style={{
+        width: sidebarCollapsed ? 'var(--sidebar-collapsed-width)' : 'var(--sidebar-width)',
+        // CSS transition on width — 180ms ease-decel (elements arriving)
+        transition: 'width 180ms cubic-bezier(0, 0, 0.2, 1)',
+      }}
       className={cn(
-        'flex flex-col h-full bg-surface border-r border-border',
-        'flex-shrink-0 overflow-hidden relative z-30'
+        'flex flex-col h-screen bg-surface border-r border-border',
+        'shrink-0 overflow-hidden relative z-sticky'
       )}
       aria-label="Main navigation"
     >
-      {/* Logo / Brand */}
-      <div className="flex items-center h-16 px-4 border-b border-border flex-shrink-0">
-        <AnimatePresence mode="wait" initial={false}>
-          {!sidebarCollapsed ? (
-            <motion.div
-              key="full-logo"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="flex items-center gap-2.5 flex-1 min-w-0"
-            >
-              <div className="size-8 rounded-lg bg-brand-primary flex items-center justify-center flex-shrink-0">
-                <span className="text-xs font-bold text-text-inverse font-display">OM</span>
-              </div>
-              <span className="font-display font-bold text-text-primary text-lg tracking-tight truncate">
-                OldMoney
-              </span>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="icon-logo"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="flex items-center justify-center w-full"
-            >
-              <div className="size-8 rounded-lg bg-brand-primary flex items-center justify-center">
-                <span className="text-xs font-bold text-text-inverse font-display">OM</span>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+      {/* ── Logo area ── */}
+      <div
+        style={{ height: 'var(--topbar-height)' }}
+        className="flex items-center px-3 border-b border-border shrink-0 gap-2.5"
+      >
+        {/* Brand monogram — always visible */}
+        <div className="size-7 rounded bg-brand-primary flex items-center justify-center shrink-0">
+          <span className="text-[10px] font-bold text-text-inverse font-display tracking-wide">
+            {orgMonogram}
+          </span>
+        </div>
+
+        {/* Expanded: wordmark + org name */}
+        {!sidebarCollapsed && (
+          <div className="min-w-0 flex-1">
+            <p className="font-display font-bold text-text-primary text-[15px] tracking-tight leading-none truncate">
+              OldMoney
+            </p>
+            {activeOrg && (
+              <p className="text-[11px] text-text-muted truncate mt-0.5 leading-none">
+                {activeOrg.name}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 py-3 overflow-y-auto" aria-label="App navigation">
-        <ul className="space-y-0.5 px-2" role="list">
-          {navItems.map((item) => {
-            const active = isActive(item.href)
-            const Icon = item.icon
-
-            const linkContent = (
-              <Link
+      {/* ── Navigation ── */}
+      <nav className="flex-1 py-2 overflow-y-auto" aria-label="App navigation">
+        <ul className={cn('space-y-0.5', sidebarCollapsed ? 'px-1.5' : 'px-2')} role="list">
+          {navItems.map((item) => (
+            <li key={item.href}>
+              <NavItem
                 href={item.href}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-button text-sm font-medium transition-all duration-150',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary',
-                  active
-                    ? 'bg-surface-muted text-brand-primary border-l-2 border-brand-primary pl-[10px]'
-                    : 'text-text-secondary hover:bg-surface-muted hover:text-text-primary'
-                )}
-                aria-current={active ? 'page' : undefined}
-              >
-                <Icon
-                  className={cn(
-                    'size-4 flex-shrink-0',
-                    active ? 'text-brand-primary' : 'text-text-muted'
-                  )}
-                  aria-hidden="true"
-                />
-                <AnimatePresence initial={false}>
-                  {!sidebarCollapsed && (
-                    <motion.span
-                      initial={{ opacity: 0, width: 0 }}
-                      animate={{ opacity: 1, width: 'auto' }}
-                      exit={{ opacity: 0, width: 0 }}
-                      transition={{ duration: 0.15 }}
-                      className="overflow-hidden whitespace-nowrap"
-                    >
-                      {item.label}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </Link>
-            )
-
-            return (
-              <li key={item.href}>
-                {sidebarCollapsed ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-                    <TooltipContent side="right">{item.label}</TooltipContent>
-                  </Tooltip>
-                ) : (
-                  linkContent
-                )}
-              </li>
-            )
-          })}
+                label={item.label}
+                icon={item.icon}
+                collapsed={sidebarCollapsed}
+                accent={'accent' in item ? item.accent : undefined}
+              />
+            </li>
+          ))}
         </ul>
       </nav>
 
-      {/* Bottom: Org + User */}
-      <div className="border-t border-border p-2 space-y-1 flex-shrink-0">
-        {/* Org switcher */}
-        {!sidebarCollapsed && activeOrg && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-button text-sm text-text-secondary hover:bg-surface-muted transition-colors duration-150 cursor-pointer group">
-            <Building2 className="size-4 text-text-muted flex-shrink-0" aria-hidden="true" />
-            <span className="flex-1 truncate font-medium">{activeOrg.name}</span>
-            <ChevronDown className="size-3.5 text-text-muted" aria-hidden="true" />
-          </div>
-        )}
+      {/* ── Bottom section ── */}
+      <div className="border-t border-border p-2 space-y-1 shrink-0">
+        {/* Collapse toggle */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size={sidebarCollapsed ? 'icon-sm' : 'default'}
+              onClick={toggleSidebar}
+              className={cn(
+                'w-full text-text-muted',
+                !sidebarCollapsed && 'justify-start gap-2.5 px-3'
+              )}
+              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {sidebarCollapsed ? (
+                <PanelLeftOpen className="size-4" aria-hidden="true" />
+              ) : (
+                <>
+                  <PanelLeftClose className="size-4 shrink-0" aria-hidden="true" />
+                  <span className="text-sm font-medium">Collapse</span>
+                </>
+              )}
+            </Button>
+          </TooltipTrigger>
+          {sidebarCollapsed && (
+            <TooltipContent side="right">Expand sidebar</TooltipContent>
+          )}
+        </Tooltip>
 
         {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
-                'flex items-center gap-3 w-full px-3 py-2 rounded-button text-sm',
-                'hover:bg-surface-muted transition-colors duration-150 focus-visible:outline-none',
-                'focus-visible:ring-2 focus-visible:ring-brand-primary'
+                'flex items-center w-full rounded transition-colors duration-[120ms]',
+                'hover:bg-surface-muted focus-visible:outline-none',
+                'focus-visible:ring-2 focus-visible:ring-brand-primary/40',
+                sidebarCollapsed ? 'justify-center p-1.5' : 'gap-2.5 px-3 py-2'
               )}
               aria-label="User menu"
             >
-              {/* Avatar */}
-              <div className="size-7 rounded-full bg-brand-primary flex items-center justify-center flex-shrink-0">
-                <span className="text-xs font-bold text-text-inverse uppercase">
-                  {user?.full_name?.charAt(0) ?? user?.email?.charAt(0) ?? 'U'}
+              {/* 28px avatar — brand-subtle bg, initials */}
+              <div className="size-7 rounded-full bg-brand-subtle flex items-center justify-center shrink-0">
+                <span className="text-[11px] font-semibold text-brand-primary uppercase">
+                  {initials}
                 </span>
               </div>
-              <AnimatePresence initial={false}>
-                {!sidebarCollapsed && (
-                  <motion.div
-                    initial={{ opacity: 0, width: 0 }}
-                    animate={{ opacity: 1, width: 'auto' }}
-                    exit={{ opacity: 0, width: 0 }}
-                    transition={{ duration: 0.15 }}
-                    className="flex-1 text-left overflow-hidden"
-                  >
-                    <p className="text-xs font-medium text-text-primary truncate">
-                      {user?.full_name ?? 'User'}
-                    </p>
-                    <p className="text-xs text-text-muted truncate">{user?.email}</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+
+              {!sidebarCollapsed && (
+                <div className="flex-1 text-left min-w-0">
+                  <p className="text-xs font-medium text-text-primary truncate leading-snug">
+                    {user?.full_name ?? 'User'}
+                  </p>
+                  <p className="text-[11px] text-text-muted truncate leading-snug">
+                    {user?.email}
+                  </p>
+                </div>
+              )}
+
+              {!sidebarCollapsed && (
+                <ChevronDown className="size-3.5 text-text-muted shrink-0" aria-hidden="true" />
+              )}
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" align="start" className="w-48">
-            <DropdownMenuItem asChild>
-              <Link href="/settings">Profile Settings</Link>
-            </DropdownMenuItem>
+
+          <DropdownMenuContent side="top" align="start" className="w-52">
+            {/* Identity header — not interactive */}
+            <div className="px-2 py-1.5 mb-1">
+              <p className="text-sm font-medium text-text-primary truncate">
+                {user?.full_name ?? 'User'}
+              </p>
+              <p className="text-xs text-text-muted truncate">{user?.email}</p>
+            </div>
+
             <DropdownMenuSeparator />
+
+            <DropdownMenuItem asChild>
+              <Link href="/settings" className="flex items-center gap-2">
+                <User className="size-4" aria-hidden="true" />
+                Profile
+              </Link>
+            </DropdownMenuItem>
+
+            {activeOrg && (
+              <DropdownMenuItem asChild>
+                <Link href="/settings" className="flex items-center gap-2">
+                  <Building2 className="size-4" aria-hidden="true" />
+                  {activeOrg.name}
+                </Link>
+              </DropdownMenuItem>
+            )}
+
+            <DropdownMenuSeparator />
+
             <DropdownMenuItem
               onClick={() => logout()}
-              className="text-danger focus:bg-danger-bg focus:text-danger"
+              className="text-danger-text focus:bg-danger-bg focus:text-danger-text flex items-center gap-2"
             >
-              <LogOut className="size-4" />
+              <LogOut className="size-4" aria-hidden="true" />
               Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-
-        {/* Collapse toggle */}
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={toggleSidebar}
-          className="w-full flex items-center justify-center"
-          aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {sidebarCollapsed ? (
-            <PanelLeftOpen className="size-4 text-text-muted" />
-          ) : (
-            <PanelLeftClose className="size-4 text-text-muted" />
-          )}
-        </Button>
       </div>
-    </motion.aside>
+    </aside>
   )
 }

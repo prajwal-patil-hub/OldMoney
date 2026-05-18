@@ -2,204 +2,230 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
-import { toast } from 'sonner'
-import { useAuth } from '@/lib/hooks/useAuth'
+import type { AxiosError } from 'axios'
+import api from '@/lib/api'
+import { useAuthStore } from '@/store/auth.store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import type { AxiosError } from 'axios'
+import type { AuthResponse } from '@/types/api'
 
-interface ApiErrorResponse {
+interface ApiErrorDetail {
   detail?: string
-  errors?: Array<{ message: string }>
+  locked_until?: string
 }
 
-function extractErrorMessage(error: unknown): string {
-  const axiosError = error as AxiosError<ApiErrorResponse>
-  const data = axiosError?.response?.data
-  if (data?.errors?.[0]?.message) return data.errors[0].message
-  if (data?.detail) return data.detail
-  return 'Invalid credentials. Please check your email and password.'
+function getErrorMessage(err: unknown): { message: string; locked?: boolean; minutesLeft?: number } {
+  const axiosErr = err as AxiosError<ApiErrorDetail>
+  const status = axiosErr?.response?.status
+  const data = axiosErr?.response?.data
+
+  if (status === 423) {
+    const lockedUntil = data?.locked_until
+    let minutesLeft: number | undefined
+    if (lockedUntil) {
+      const diff = new Date(lockedUntil).getTime() - Date.now()
+      minutesLeft = Math.max(1, Math.ceil(diff / 60_000))
+    }
+    return {
+      message: minutesLeft
+        ? `Account locked. Try again in ${minutesLeft} minute${minutesLeft === 1 ? '' : 's'}.`
+        : 'Account locked. Please contact support.',
+      locked: true,
+      minutesLeft,
+    }
+  }
+
+  if (status === 401) {
+    return { message: 'Invalid email or password.' }
+  }
+
+  if (data?.detail) {
+    return { message: data.detail }
+  }
+
+  return { message: 'Something went wrong. Please try again.' }
 }
 
 export default function LoginPage() {
-  const { loginAsync, isLoggingIn } = useAuth()
+  const router = useRouter()
+  const setAuth = useAuthStore((s) => s.setAuth)
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [errors, setErrors] = useState<{ email?: string; password?: string; form?: string }>({})
+  const [isLoading, setIsLoading] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({})
 
   function validate(): boolean {
-    const next: typeof errors = {}
-    if (!email.trim()) next.email = 'Email is required.'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
+    const next: typeof fieldErrors = {}
+    if (!email.trim()) {
+      next.email = 'Email is required.'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       next.email = 'Enter a valid email address.'
-    if (!password) next.password = 'Password is required.'
-    setErrors(next)
+    }
+    if (!password) {
+      next.password = 'Password is required.'
+    }
+    setFieldErrors(next)
     return Object.keys(next).length === 0
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!validate()) return
-    setErrors({})
+    setFormError(null)
+    setIsLoading(true)
 
     try {
-      await loginAsync({ email: email.trim(), password })
-      toast.success('Welcome back!')
+      const res = await api.post<AuthResponse>('/auth/login', {
+        email: email.trim(),
+        password,
+      })
+      setAuth(res.data)
+      router.push('/dashboard')
     } catch (err) {
-      const message = extractErrorMessage(err)
-      const isLocked =
-        message.toLowerCase().includes('lock') || message.toLowerCase().includes('suspend')
-
-      setErrors({ form: message })
-
-      if (isLocked) {
-        toast.error('Account locked', {
-          description: 'Your account has been locked. Please contact support.',
-        })
-      } else {
-        toast.error('Sign in failed', { description: message })
-      }
+      const { message } = getErrorMessage(err)
+      setFormError(message)
+    } finally {
+      setIsLoading(false)
     }
   }
 
   return (
-    <Card className="shadow-card-hover">
-      <CardHeader className="pb-2">
-        <h1
-          className="text-2xl font-bold text-text-primary leading-tight"
-          style={{ fontFamily: 'var(--font-playfair)' }}
-        >
-          Welcome back
-        </h1>
-        <p className="text-sm text-text-muted mt-1">Sign in to your wealth platform</p>
-      </CardHeader>
+    <div>
+      {/* Heading */}
+      <h1 className="font-display text-2xl font-bold text-text-primary tracking-tight">
+        Welcome back
+      </h1>
+      <p className="text-sm text-text-muted mt-1">Sign in to your wealth platform</p>
 
-      <CardContent className="pt-4">
-        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-          {/* Form-level error */}
-          {errors.form && (
-            <div
-              role="alert"
-              className="rounded-lg border border-danger/30 bg-danger-bg px-4 py-3 text-sm text-danger"
-            >
-              {errors.form}
-            </div>
-          )}
+      <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
+        {/* Form-level error */}
+        {formError && (
+          <div
+            role="alert"
+            className="px-3 py-2 rounded bg-danger-bg border border-danger/20 text-sm text-danger-text"
+          >
+            {formError}
+          </div>
+        )}
 
-          {/* Email */}
-          <div className="space-y-1.5">
-            <label htmlFor="email" className="text-sm font-medium text-text-primary">
-              Email address
-            </label>
+        {/* Email */}
+        <div>
+          <label
+            htmlFor="email"
+            className="block text-xs text-text-secondary mb-1.5 font-medium"
+          >
+            Email address
+          </label>
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            autoFocus
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value)
+              if (fieldErrors.email) setFieldErrors((p) => ({ ...p, email: undefined }))
+            }}
+            error={fieldErrors.email}
+            disabled={isLoading}
+          />
+        </div>
+
+        {/* Password */}
+        <div>
+          <label
+            htmlFor="password"
+            className="block text-xs text-text-secondary mb-1.5 font-medium"
+          >
+            Password
+          </label>
+          <div className="relative">
             <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              autoFocus
-              placeholder="you@example.com"
-              value={email}
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              placeholder="••••••••"
+              value={password}
               onChange={(e) => {
-                setEmail(e.target.value)
-                if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }))
+                setPassword(e.target.value)
+                if (fieldErrors.password) setFieldErrors((p) => ({ ...p, password: undefined }))
               }}
-              error={errors.email}
-              disabled={isLoggingIn}
+              error={fieldErrors.password}
+              disabled={isLoading}
+              className="pr-10"
             />
-          </div>
-
-          {/* Password */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label htmlFor="password" className="text-sm font-medium text-text-primary">
-                Password
-              </label>
-              <Link
-                href="/forgot-password"
-                className="text-xs text-brand-primary hover:underline transition-colors"
-                tabIndex={-1}
-              >
-                Forgot password?
-              </Link>
-            </div>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="current-password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value)
-                  if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }))
-                }}
-                error={errors.password}
-                disabled={isLoggingIn}
-                className="pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className={cn(
-                  'absolute right-3 top-[18px] text-text-muted hover:text-text-primary transition-colors',
-                  errors.password && 'top-[18px]'
-                )}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-                tabIndex={-1}
-              >
-                {showPassword ? (
-                  <EyeOff className="size-4" aria-hidden="true" />
-                ) : (
-                  <Eye className="size-4" aria-hidden="true" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Remember me */}
-          <div className="flex items-center gap-2">
-            <input
-              id="remember-me"
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              className="size-4 rounded border-border accent-brand-primary cursor-pointer"
-              disabled={isLoggingIn}
-            />
-            <label
-              htmlFor="remember-me"
-              className="text-sm text-text-secondary cursor-pointer select-none"
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute right-2.5 top-[9px] text-text-muted hover:text-text-primary transition-colors duration-fast"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              tabIndex={-1}
             >
-              Remember me for 30 days
-            </label>
+              {showPassword ? (
+                <EyeOff className="size-4" aria-hidden="true" />
+              ) : (
+                <Eye className="size-4" aria-hidden="true" />
+              )}
+            </button>
           </div>
+        </div>
 
-          <Button
-            type="submit"
-            className="w-full"
-            size="lg"
-            loading={isLoggingIn}
-            disabled={isLoggingIn}
+        {/* Remember me */}
+        <div className="flex items-center gap-2">
+          <input
+            id="remember-me"
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+            className={cn(
+              'size-4 rounded-sm border-border bg-surface-inset',
+              'accent-brand-primary cursor-pointer',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/20'
+            )}
+            disabled={isLoading}
+          />
+          <label
+            htmlFor="remember-me"
+            className="text-sm text-text-secondary cursor-pointer select-none"
           >
-            Sign in
-          </Button>
-        </form>
+            Keep me signed in
+          </label>
+        </div>
 
-        <p className="mt-6 text-center text-sm text-text-muted">
-          Don&apos;t have an account?{' '}
-          <Link
-            href="/register"
-            className="font-medium text-brand-primary hover:underline transition-colors"
-          >
-            Create one
-          </Link>
-        </p>
-      </CardContent>
-    </Card>
+        {/* Submit */}
+        <Button
+          type="submit"
+          className="w-full"
+          loading={isLoading}
+          disabled={isLoading}
+        >
+          Sign in
+        </Button>
+      </form>
+
+      {/* Register link */}
+      <p className="mt-6 text-sm text-text-muted text-center">
+        New here?{' '}
+        <Link
+          href="/register"
+          className="text-brand-primary hover:underline underline-offset-4 transition-colors duration-fast"
+        >
+          Create an account
+        </Link>
+      </p>
+
+      {/* Security note */}
+      <p className="mt-6 text-xs text-text-muted text-center">
+        Protected by JWT authentication · No data sent to external servers
+      </p>
+    </div>
   )
 }

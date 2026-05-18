@@ -61,14 +61,14 @@ const assetTypeBadgeVariant: Record<string, VariantProps<typeof badgeVariants>['
   OTHER:    'outline',
 }
 
-function AssetTypeBadge({
-  type,
-  className,
-  ...props
-}: { type: string } & Omit<BadgeProps, 'variant'>) {
+interface AssetTypeBadgeProps extends Omit<BadgeProps, 'variant'> {
+  type: string
+}
+
+function AssetTypeBadge({ type, ...props }: AssetTypeBadgeProps) {
   const variant = assetTypeBadgeVariant[type?.toUpperCase()] ?? 'default'
   return (
-    <Badge variant={variant} className={className} {...props}>
+    <Badge variant={variant} {...props}>
       {type}
     </Badge>
   )
@@ -87,14 +87,14 @@ const txTypeBadgeVariant: Record<string, VariantProps<typeof badgeVariants>['var
   OTHER:      'outline',
 }
 
-function TransactionTypeBadge({
-  type,
-  className,
-  ...props
-}: { type: string } & Omit<BadgeProps, 'variant'>) {
+interface TransactionTypeBadgeProps extends Omit<BadgeProps, 'variant'> {
+  type: string
+}
+
+function TransactionTypeBadge({ type, ...props }: TransactionTypeBadgeProps) {
   const variant = txTypeBadgeVariant[type?.toUpperCase()] ?? 'default'
   return (
-    <Badge variant={variant} className={className} {...props}>
+    <Badge variant={variant} {...props}>
       {type}
     </Badge>
   )
