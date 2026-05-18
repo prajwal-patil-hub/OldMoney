@@ -1,0 +1,373 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================================
+   CSS Custom Properties — Light Mode (default)
+   ========================================================= */
+:root {
+  /* Backgrounds */
+  --background: #FAF6F1;
+  --surface: #FFFFFF;
+  --surface-elevated: #FDF9F5;
+  --surface-muted: #F5EEE6;
+  --border: #E8DDD4;
+  --border-strong: #D4C4B4;
+
+  /* Brand */
+  --brand-primary: #7C2220;
+  --brand-primary-hover: #6F1D01;
+  --brand-secondary: #854023;
+  --brand-gold: #9F6920;
+  --brand-gold-light: #DAA755;
+
+  /* Text */
+  --text-primary: #1A0F0C;
+  --text-secondary: #6C5141;
+  --text-muted: #A28C75;
+  --text-inverse: #FAF6F1;
+
+  /* Semantic */
+  --success: #2D6A4F;
+  --success-bg: #D8F3DC;
+  --warning: #9F6920;
+  --warning-bg: #F1DEA8;
+  --danger: #7C2220;
+  --danger-bg: #FDECEA;
+  --info: #1B4965;
+  --info-bg: #CAE9FF;
+
+  /* Scrollbar */
+  --scrollbar-track: #F5EEE6;
+  --scrollbar-thumb: #D4C4B4;
+  --scrollbar-thumb-hover: #A28C75;
+}
+
+/* =========================================================
+   Dark Mode
+   ========================================================= */
+.dark {
+  --background: #0F0A09;
+  --surface: #1A1210;
+  --surface-elevated: #231715;
+  --surface-muted: #2C1C18;
+  --border: #3D2820;
+  --border-strong: #5C3A2E;
+
+  --brand-primary: #B84140;
+  --brand-primary-hover: #9F3130;
+  --brand-secondary: #C4673A;
+  --brand-gold: #DAA755;
+  --brand-gold-light: #F1DEA8;
+
+  --text-primary: #F1DEA8;
+  --text-secondary: #D7C1A8;
+  --text-muted: #A28C75;
+  --text-inverse: #0F0A09;
+
+  --success: #52B788;
+  --success-bg: #1A3D2C;
+  --warning: #DAA755;
+  --warning-bg: #3D2800;
+  --danger: #E05252;
+  --danger-bg: #3D1212;
+  --info: #5EA8D4;
+  --info-bg: #0D2639;
+
+  --scrollbar-track: #2C1C18;
+  --scrollbar-thumb: #5C3A2E;
+  --scrollbar-thumb-hover: #A28C75;
+}
+
+/* =========================================================
+   Base Styles
+   ========================================================= */
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--text-primary);
+    font-family: var(--font-inter), system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    transition: background-color 200ms ease, color 200ms ease;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-heading;
+    color: var(--text-primary);
+    line-height: 1.3;
+  }
+
+  h1 { @apply text-3xl; }
+  h2 { @apply text-2xl; }
+  h3 { @apply text-xl; }
+  h4 { @apply text-lg; }
+  h5, h6 { @apply text-base; }
+
+  p {
+    color: var(--text-secondary);
+  }
+
+  a {
+    color: var(--brand-primary);
+    text-decoration: none;
+    transition: color 150ms ease;
+  }
+
+  a:hover {
+    color: var(--brand-primary-hover);
+  }
+
+  /* Focus visible — keyboard accessibility */
+  :focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Selection */
+  ::selection {
+    background-color: rgba(159, 105, 32, 0.2);
+    color: var(--text-primary);
+  }
+}
+
+/* =========================================================
+   Scrollbar Styling (Webkit)
+   ========================================================= */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+  transition: background 150ms ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* =========================================================
+   Utility Classes
+   ========================================================= */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .dark .glass {
+    background: rgba(26, 18, 16, 0.8);
+  }
+
+  /* Number formatting */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+
+  /* Positive/negative value colors */
+  .value-positive {
+    color: var(--success);
+  }
+
+  .value-negative {
+    color: var(--danger);
+  }
+
+  .value-neutral {
+    color: var(--text-muted);
+  }
+}
+
+/* =========================================================
+   Component Layer
+   ========================================================= */
+@layer components {
+  /* Card base */
+  .card {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(26, 15, 12, 0.06), 0 1px 2px rgba(26, 15, 12, 0.04);
+    transition: box-shadow 200ms ease;
+  }
+
+  .card:hover {
+    box-shadow: 0 4px 12px rgba(26, 15, 12, 0.10), 0 2px 4px rgba(26, 15, 12, 0.06);
+  }
+
+  /* Sidebar nav item */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2 rounded-button text-sm font-medium;
+    color: var(--text-secondary);
+    transition: background-color 150ms ease, color 150ms ease;
+  }
+
+  .nav-item:hover {
+    background-color: var(--surface-muted);
+    color: var(--text-primary);
+  }
+
+  .nav-item.active {
+    background-color: var(--surface-muted);
+    color: var(--brand-primary);
+    border-left: 2px solid var(--brand-primary);
+    padding-left: calc(theme(spacing.3) - 2px);
+  }
+
+  /* Input base */
+  .input-base {
+    @apply w-full rounded-button border border-border bg-surface px-3 py-2 text-sm;
+    color: var(--text-primary);
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+
+  .input-base::placeholder {
+    color: var(--text-muted);
+  }
+
+  .input-base:focus-visible {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 3px rgba(124, 34, 32, 0.12);
+    outline: none;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  /* Skeleton loader */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--surface-muted) 25%,
+      var(--border) 50%,
+      var(--surface-muted) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+    border-radius: 4px;
+  }
+
+  @keyframes skeleton-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+}
+
+/* =========================================================
+   Page transitions
+   ========================================================= */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-transition {
+  animation: page-in 200ms ease forwards;
+}
+
+/* =========================================================
+   Chart container
+   ========================================================= */
+.echarts-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* =========================================================
+   Command Palette
+   ========================================================= */
+[cmdk-overlay] {
+  background: rgba(15, 10, 9, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+[cmdk-dialog] {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(26, 15, 12, 0.2);
+}
+
+[cmdk-input] {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 16px;
+  outline: none;
+  width: 100%;
+}
+
+[cmdk-input]::placeholder {
+  color: var(--text-muted);
+}
+
+[cmdk-item] {
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 8px 12px;
+  transition: background-color 100ms ease;
+}
+
+[cmdk-item][aria-selected='true'],
+[cmdk-item]:hover {
+  background-color: var(--surface-muted);
+}
+
+[cmdk-group-heading] {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 8px 12px 4px;
+  text-transform: uppercase;
+}
+
+[cmdk-separator] {
+  border-top: 1px solid var(--border);
+  margin: 4px 0;
+}
