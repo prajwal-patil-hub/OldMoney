@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OldMoney — Architecture & Flow</title>
+<style>
+  :root {
+    --seal-brown:   #49120F;
+    --falu-red:     #7C2220;
+    --fire:         #854023;
+    --sienna:       #CD7A3E;
+    --buttermilk:   #F1DEA8;
+    --gold:         #9F6920;
+    --ink:          #1C1410;
+    --parchment:    #FAF6EE;
+    --muted:        #8A7A6A;
+    --border:       #E2D9C8;
+    --white:        #FFFFFF;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--parchment);
+    color: var(--ink);
+    line-height: 1.6;
+    padding: 32px 24px;
+  }
+
+  h1 {
+    font-family: Georgia, serif;
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--seal-brown);
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin-bottom: 48px;
+  }
+
+  h2 {
+    font-family: Georgia, serif;
+    font-size: 1.25rem;
+    color: var(--seal-brown);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--buttermilk);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  h2 .num {
+    background: var(--seal-brown);
+    color: var(--buttermilk);
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-family: 'Inter', system-ui, sans-serif;
+    letter-spacing: 0.05em;
+  }
+
+  section {
+    margin-bottom: 56px;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+  }
+
+  .card-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  /* ── SYSTEM OVERVIEW DIAGRAM ── */
+  .system-diagram {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    overflow-x: auto;
+  }
+
+  /* ── LAYER BOXES ── */
+  .layer {
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 4px;
+  }
+
+  .layer-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .layer-browser   { background: #EFF6FF; border: 1.5px solid #93C5FD; }
+  .layer-frontend  { background: #F0FDF4; border: 1.5px solid #86EFAC; }
+  .layer-backend   { background: #FFF7ED; border: 1.5px solid #FDBA74; }
+  .layer-data      { background: #FDF4FF; border: 1.5px solid #D8B4FE; }
+  .layer-ai        { background: #FFF1F2; border: 1.5px solid #FDA4AF; }
+
+  .layer-browser  .layer-label { color: #1D4ED8; }
+  .layer-frontend .layer-label { color: #15803D; }
+  .layer-backend  .layer-label { color: #C2410C; }
+  .layer-data     .layer-label { color: #7E22CE; }
+  .layer-ai       .layer-label { color: #BE123C; }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .chip {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid;
+  }
+
+  .chip-blue   { background: #EFF6FF; border-color: #93C5FD; color: #1D4ED8; }
+  .chip-green  { background: #F0FDF4; border-color: #86EFAC; color: #15803D; }
+  .chip-orange { background: #FFF7ED; border-color: #FDBA74; color: #C2410C; }
+  .chip-purple { background: #FDF4FF; border-color: #D8B4FE; color: #7E22CE; }
+  .chip-red    { background: #FFF1F2; border-color: #FDA4AF; color: #BE123C; }
+  .chip-gold   { background: #FFFBEB; border-color: #FCD34D; color: #92400E; }
+
+  .arrow-down {
+    text-align: center;
+    font-size: 1.2rem;
+    color: var(--muted);
+    margin: 4px 0;
+    letter-spacing: 4px;
+  }
+
+  /* ── MODULE GRID ── */
+  .module-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .module-card {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    position: relative;
+  }
+
+  .module-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 8px 8px 0 0;
+  }
+
+  .mod-auth::before    { background: var(--seal-brown); }
+  .mod-org::before     { background: var(--fire); }
+  .mod-portfolio::before{ background: var(--gold); }
+  .mod-holdings::before{ background: #16A34A; }
+  .mod-tx::before      { background: #0369A1; }
+  .mod-assets::before  { background: #6D28D9; }
+  .mod-ai::before      { background: #BE185D; }
+  .mod-search::before  { background: #0F766E; }
+  .mod-imports::before { background: #B45309; }
+  .mod-dashboard::before{ background: var(--sienna); }
+
+  .module-name {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+
+  .module-prefix {
+    font-size: 0.65rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .module-endpoints {
+    list-style: none;
+  }
+
+  .module-endpoints li {
+    font-size: 0.68rem;
+    color: var(--muted);
+    padding: 2px 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .method {
+    font-size: 0.58rem;
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 3px;
+    min-width: 32px;
+    text-align: center;
+  }
+  .get   { background: #DCFCE7; color: #15803D; }
+  .post  { background: #DBEAFE; color: #1D4ED8; }
+  .patch { background: #FEF9C3; color: #92400E; }
+  .del   { background: #FEE2E2; color: #DC2626; }
+
+  /* ── FLOW DIAGRAM ── */
+  .flow-row {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin-bottom: 20px;
+    overflow-x: auto;
+  }
+
+  .flow-step {
+    flex: 1;
+    min-width: 120px;
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 12px;
+    position: relative;
+    text-align: center;
+  }
+
+  .flow-step + .flow-step::before {
+    content: '→';
+    position: absolute;
+    left: -14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.1rem;
+    color: var(--muted);
+    background: var(--parchment);
+    z-index: 1;
+  }
+
+  .flow-step .step-num {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--seal-brown);
+    color: var(--buttermilk);
+    font-size: 0.65rem;
+    font-weight: 700;
+    line-height: 20px;
+    margin-bottom: 6px;
+  }
+
+  .flow-step .step-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+
+  .flow-step .step-detail {
+    font-size: 0.68rem;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  /* ── AUTH FLOW ── */
+  .auth-flow {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+  }
+
+  .auth-actor {
+    min-width: 110px;
+    flex: 1;
+  }
+
+  .actor-header {
+    text-align: center;
+    padding: 8px 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: 6px;
+    margin-bottom: 0;
+  }
+
+  .actor-line {
+    width: 2px;
+    background: var(--border);
+    margin: 0 auto;
+  }
+
+  /* ── DATABASE SCHEMA ── */
+  .schema-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+
+  .table-card {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .table-header {
+    padding: 8px 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .table-fields {
+    padding: 8px 0;
+  }
+
+  .field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 12px;
+    font-size: 0.68rem;
+  }
+
+  .field-name {
+    color: var(--ink);
+    font-family: monospace;
+    flex: 1;
+  }
+
+  .field-type {
+    color: var(--muted);
+    font-size: 0.62rem;
+    font-family: monospace;
+  }
+
+  .pk  { color: #CA8A04; }
+  .fk  { color: #0369A1; }
+
+  /* ── FRONTEND PAGES ── */
+  .page-tree {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  .sidebar-mock {
+    background: #1C1410;
+    border-radius: 8px;
+    padding: 16px;
+    color: var(--buttermilk);
+  }
+
+  .sidebar-mock .brand {
+    font-family: Georgia, serif;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    margin-bottom: 2px;
+    color: rgba(241, 222, 168, 0.6);
+  }
+
+  .nav-item.active {
+    background: rgba(241, 222, 168, 0.12);
+    color: var(--buttermilk);
+  }
+
+  .nav-item .icon { font-size: 0.9rem; }
+
+  .pages-detail {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .page-card {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+  }
+
+  .page-route {
+    font-family: monospace;
+    font-size: 0.68rem;
+    color: var(--gold);
+    margin-bottom: 4px;
+  }
+
+  .page-name {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+
+  .page-features {
+    list-style: none;
+  }
+
+  .page-features li {
+    font-size: 0.67rem;
+    color: var(--muted);
+    padding: 1px 0;
+    padding-left: 12px;
+    position: relative;
+  }
+
+  .page-features li::before {
+    content: '·';
+    position: absolute;
+    left: 0;
+    color: var(--sienna);
+    font-weight: 700;
+  }
+
+  /* ── SECURITY LAYERS ── */
+  .security-onion {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .sec-layer {
+    padding: 12px 16px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .sec-icon { font-size: 1.1rem; }
+  .sec-name { font-size: 0.78rem; font-weight: 700; flex: 1; }
+  .sec-detail { font-size: 0.68rem; color: var(--muted); }
+
+  .sec-1 { background: #FFF1F2; border: 1px solid #FECACA; }
+  .sec-2 { background: #FFF7ED; border: 1px solid #FED7AA; }
+  .sec-3 { background: #FEFCE8; border: 1px solid #FDE68A; }
+  .sec-4 { background: #F0FDF4; border: 1px solid #BBF7D0; }
+  .sec-5 { background: #EFF6FF; border: 1px solid #BFDBFE; }
+  .sec-6 { background: #FAF5FF; border: 1px solid #DDD6FE; }
+  .sec-7 { background: #F0FDFA; border: 1px solid #99F6E4; }
+
+  /* ── LEGEND ── */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .module-grid { grid-template-columns: repeat(2, 1fr); }
+    .schema-grid { grid-template-columns: repeat(2, 1fr); }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .pages-detail { grid-template-columns: 1fr; }
+    .page-tree { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h1>OldMoney</h1>
+<p class="subtitle">Architecture, Data Flow & Application Structure — Visual Reference</p>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- 1. SYSTEM OVERVIEW                                          -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section>
+  <h2><span class="num">01</span> System Overview — Stack Layers</h2>
+  <div class="system-diagram">
+
+    <div class="layer layer-browser">
+      <div class="layer-label">🌐 Browser (User's Machine)</div>
+      <div class="chips">
+        <span class="chip chip-blue">Next.js 15 App Router</span>
+        <span class="chip chip-blue">TypeScript Strict</span>
+        <span class="chip chip-blue">TailwindCSS + OKLCH tokens</span>
+        <span class="chip chip-blue">Zustand (state)</span>
+        <span class="chip chip-blue">TanStack Query v5</span>
+        <span class="chip chip-blue">ECharts (charts)</span>
+        <span class="chip chip-blue">cmdk (command palette)</span>
+      </div>
+    </div>
+
+    <div class="arrow-down">↕ HTTP / REST + SSE (streaming)</div>
+
+    <div class="layer layer-frontend" style="margin-top:4px">
+      <div class="layer-label">⚡ Frontend Server — Next.js (Port 3000)</div>
+      <div class="chips">
+        <span class="chip chip-green">Pages &amp; Layouts</span>
+        <span class="chip chip-green">API Client (axios-like)</span>
+        <span class="chip chip-green">Auth Store (sessionStorage)</span>
+        <span class="chip chip-green">Security Headers (CSP, X-Frame)</span>
+        <span class="chip chip-green">Docker: read-only container</span>
+      </div>
+    </div>
+
+    <div class="arrow-down">↕ HTTP / REST + SSE — CORS-gated (localhost:8000)</div>
+
+    <div class="layer layer-backend" style="margin-top:4px">
+      <div class="layer-label">🐍 Backend API — FastAPI (Port 8000)</div>
+      <div class="chips">
+        <span class="chip chip-orange">Python 3.12 + async/await</span>
+        <span class="chip chip-orange">SQLAlchemy 2.0 async ORM</span>
+        <span class="chip chip-orange">Pydantic v2 schemas</span>
+        <span class="chip chip-orange">Alembic migrations</span>
+        <span class="chip chip-orange">slowapi rate limiting</span>
+        <span class="chip chip-orange">structlog JSON logs</span>
+        <span class="chip chip-orange">argon2id passwords</span>
+        <span class="chip chip-orange">JWT (RS256 / HS256)</span>
+        <span class="chip chip-orange">APScheduler background jobs</span>
+        <span class="chip chip-orange">Docker: non-root appuser</span>
+      </div>
+    </div>
+
+    <div class="arrow-down">↕ SQLAlchemy async (aiosqlite)</div>
+
+    <div class="layer layer-data" style="margin-top:4px">
+      <div class="layer-label">🗄️ Data Layer — SQLite WAL (named Docker volume: api_data)</div>
+      <div class="chips">
+        <span class="chip chip-purple">15 relational tables</span>
+        <span class="chip chip-purple">FTS5 virtual table (full-text search)</span>
+        <span class="chip chip-purple">2 Alembic migrations</span>
+        <span class="chip chip-purple">25 performance indexes</span>
+        <span class="chip chip-purple">Soft-delete (deleted_at)</span>
+        <span class="chip chip-purple">WAL mode (concurrent reads)</span>
+      </div>
+    </div>
+
+    <div class="arrow-down">↕ HTTP (Ollama REST API — host.docker.internal:11434)</div>
+
+    <div class="layer layer-ai" style="margin-top:4px">
+      <div class="layer-label">🤖 AI Layer — Ollama (Host machine, no cloud)</div>
+      <div class="chips">
+        <span class="chip chip-red">llama3.1:8b (default model)</span>
+        <span class="chip chip-red">OpenAI-compatible API</span>
+        <span class="chip chip-red">Server-Sent Events (SSE streaming)</span>
+        <span class="chip chip-red">Tool calling (4 tools)</span>
+        <span class="chip chip-red">Org-scoped system prompt</span>
+        <span class="chip chip-red">Cross-tenant ownership check</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- 2. REQUEST LIFECYCLE                                         -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section>
+  <h2><span class="num">02</span> Request Lifecycle — One API Call End-to-End</h2>
+  <div class="card">
+    <div class="card-title">Example: User views portfolio holdings</div>
+    <div class="flow-row">
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div class="step-title">Browser</div>
+        <div class="step-detail">User navigates to /portfolios/[id]<br>TanStack Query fires<br>GET /api/v1/holdings</div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div class="step-title">Security Headers</div>
+        <div class="step-detail">SecurityHeadersMiddleware<br>adds CSP, X-Frame-Options,<br>Referrer-Policy</div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div class="step-title">Request ID</div>
+        <div class="step-detail">RequestIDMiddleware<br>generates fresh UUID4<br>X-Request-ID header</div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">4</div>
+        <div class="step-title">Body Size</div>
+        <div class="step-detail">BodySizeLimitMiddleware<br>rejects JSON &gt; 1 MB<br>before parsing</div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">5</div>
+        <div class="step-title">CORS</div>
+        <div class="step-detail">CORSMiddleware<br>allows localhost:3000<br>only</div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">6</div>
+        <div class="step-title">Auth Check</div>
+        <div class="step-detail">get_current_user()<br>decodes JWT, verifies<br>signature + expiry</div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">7</div>
+        <div class="step-title">Org Scope</div>
+        <div class="step-detail">_get_org_id()<br>extracts org_id<br>from JWT payload</div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">8</div>
+        <div class="step-title">Service</div>
+        <div class="step-detail">HoldingService<br>.list_holdings(org_id)<br>WHERE org_id = :org</div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">9</div>
+        <div class="step-title">Audit Log</div>
+        <div class="step-detail">AuditLogMiddleware<br>logs user_id, org_id,<br>method, status</div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">10</div>
+        <div class="step-title">Response</div>
+        <div class="step-detail">success(data.model_dump())<br>→ {data, errors, meta}<br>JSON envelope</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- 3. BACKEND MODULES                                          -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section>
+  <h2><span class="num">03</span> Backend API Modules — 10 Modules, ~50 Endpoints</h2>
+  <div class="module-grid">
+
+    <div class="module-card mod-auth">
+      <div class="module-name">Auth</div>
+      <div class="module-prefix">/api/v1/auth</div>
+      <ul class="module-endpoints">
+        <li><span class="method post">POST</span> /register</li>
+        <li><span class="method post">POST</span> /login</li>
+        <li><span class="method post">POST</span> /refresh</li>
+        <li><span class="method post">POST</span> /logout</li>
+        <li><span class="method get">GET</span> /me</li>
+        <li><span class="method patch">PATCH</span> /me</li>
+        <li><span class="method post">POST</span> /change-password</li>
+      </ul>
+    </div>
+
+    <div class="module-card mod-org">
+      <div class="module-name">Organizations</div>
+      <div class="module-prefix">/api/v1/orgs</div>
+      <ul class="module-endpoints">
+        <li><span class="method post">POST</span> / (create org)</li>
+        <li><span class="method get">GET</span> / (list my orgs)</li>
+        <li><span class="method get">GET</span> /{id}</li>
+        <li><span class="method patch">PATCH</span> /{id}</li>
+        <li><span class="method post">POST</span> /{id}/switch</li>
+        <li><span class="method post">POST</span> /{id}/members</li>
+        <li><span class="method get">GET</span> /{id}/members</li>
+        <li><span class="method patch">PATCH</span> /{id}/members/{uid}</li>
+        <li><span class="method del">DEL</span> /{id}/members/{uid}</li>
+      </ul>
+    </div>
+
+    <div class="module-card mod-portfolio">
+      <div class="module-name">Portfolios</div>
+      <div class="module-prefix">/api/v1/portfolios</div>
+      <ul class="module-endpoints">
+        <li><span class="method post">POST</span> / (create)</li>
+        <li><span class="method get">GET</span> / (list)</li>
+        <li><span class="method get">GET</span> /{id}</li>
+        <li><span class="method patch">PATCH</span> /{id}</li>
+        <li><span class="method del">DEL</span> /{id}</li>
+        <li><span class="method get">GET</span> /{id}/summary</li>
+        <li><span class="method get">GET</span> /{id}/performance</li>
+        <li><span class="method get">GET</span> /{id}/allocation</li>
+        <li><span class="method post">POST</span> /{id}/accounts</li>
+        <li><span class="method get">GET</span> /{id}/accounts</li>
+      </ul>
+    </div>
+
+    <div class="module-card mod-holdings">
+      <div class="module-name">Holdings</div>
+      <div class="module-prefix">/api/v1/holdings</div>
+      <ul class="module-endpoints">
+        <li><span class="method post">POST</span> / (upsert)</li>
+        <li><span class="method get">GET</span> / (list + filter)</li>
+        <li><span class="method get">GET</span> /summary</li>
+        <li><span class="method patch">PATCH</span> /{id}</li>
+        <li><span class="method del">DEL</span> /{id}</li>
+      </ul>
+    </div>
+
+    <div class="module-card mod-tx">
+      <div class="module-name">Transactions</div>
+      <div class="module-prefix">/api/v1/transactions</div>
+      <ul class="module-endpoints">
+        <li><span class="method post">POST</span> / (create)</li>
+        <li><span class="method get">GET</span> / (list + filters)</li>
+        <li><span class="method get">GET</span> /{id}</li>
+        <li><span class="method patch">PATCH</span> /{id}</li>
+        <li><span class="method del">DEL</span> /{id}</li>
+        <li><span class="method get">GET</span> /export (CSV)</li>
+      </ul>
+    </div>
+
+    <div class="module-card mod-assets">
+      <div class="module-name">Assets</div>
+      <div class="module-prefix">/api/v1/assets</div>
+      <ul class="module-endpoints">
+        <li><span class="method post">POST</span> / (create)</li>
+        <li><span class="method get">GET</span> / (list + search)</li>
+        <li><span class="method get">GET</span> /{id}</li>
+        <li><span class="method patch">PATCH</span> /{id}</li>
+        <li><span class="method del">DEL</span> /{id}</li>
+        <li><span class="method post">POST</span> /{id}/prices</li>
+        <li><span class="method get">GET</span> /{id}/prices</li>
+        <li><span class="method post">POST</span> /prices/import</li>
+      </ul>
+    </div>
+
+    <div class="module-card mod-dashboard">
+      <div class="module-name">Dashboard</div>
+      <div class="module-prefix">/api/v1/dashboard</div>
+      <ul class="module-endpoints">
+        <li><span class="method get">GET</span> /metrics</li>
+        <li><span class="method get">GET</span> /performance</li>
+        <li><span class="method get">GET</span> /allocation</li>
+        <li><span class="method get">GET</span> /top-holdings</li>
+        <li><span class="method get">GET</span> /recent-transactions</li>
+      </ul>
+    </div>
+
+    <div class="module-card mod-ai">
+      <div class="module-name">AI</div>
+      <div class="module-prefix">/api/v1/ai</div>
+      <ul class="module-endpoints">
+        <li><span class="method get">GET</span> /status</li>
+        <li><span class="method post">POST</span> /conversations</li>
+        <li><span class="method get">GET</span> /conversations</li>
+        <li><span class="method get">GET</span> /conversations/{id}</li>
+        <li><span class="method del">DEL</span> /conversations/{id}</li>
+        <li><span class="method post">POST</span> /conversations/{id}/messages</li>
+      </ul>
+    </div>
+
+    <div class="module-card mod-imports">
+      <div class="module-name">Imports</div>
+      <div class="module-prefix">/api/v1/imports</div>
+      <ul class="module-endpoints">
+        <li><span class="method post">POST</span> /preview</li>
+        <li><span class="method post">POST</span> /commit</li>
+        <li><span class="method get">GET</span> /templates</li>
+      </ul>
+    </div>
+
+    <div class="module-card mod-search">
+      <div class="module-name">Search</div>
+      <div class="module-prefix">/api/v1/search</div>
+      <ul class="module-endpoints">
+        <li><span class="method get">GET</span> /?q=…&amp;types=…</li>
+      </ul>
+      <br>
+      <div style="font-size:0.67rem;color:var(--muted);">SQLite FTS5 virtual table<br>Searches: portfolio, account,<br>asset, transaction</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- 4. AUTHENTICATION FLOW                                      -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section>
+  <h2><span class="num">04</span> Authentication & Authorization Flow</h2>
+  <div class="grid-2">
+
+    <div class="card">
+      <div class="card-title">Login → Org Switch → Protected Route</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+
+        <div style="background:#F9FAFB;border:1.5px solid #E5E7EB;border-radius:6px;padding:10px 12px">
+          <div style="font-size:0.72rem;font-weight:700;color:#374151;margin-bottom:4px">① Register / Login</div>
+          <div style="font-size:0.67rem;color:#6B7280">POST /auth/login → access_token (15 min) + refresh_token (30 days)<br>Passwords: argon2id (time=3, mem=64MB)<br>Token stored: accessToken → sessionStorage, refreshToken → memory only</div>
+        </div>
+
+        <div style="text-align:center;color:var(--muted);font-size:0.8rem">↓</div>
+
+        <div style="background:#F9FAFB;border:1.5px solid #E5E7EB;border-radius:6px;padding:10px 12px">
+          <div style="font-size:0.72rem;font-weight:700;color:#374151;margin-bottom:4px">② Create / Switch Organization</div>
+          <div style="font-size:0.67rem;color:#6B7280">POST /orgs/{id}/switch → new access_token with org_id in payload<br>JWT payload: { user_id, email, org_id, role, exp }<br>Every request must carry an org-scoped token</div>
+        </div>
+
+        <div style="text-align:center;color:var(--muted);font-size:0.8rem">↓</div>
+
+        <div style="background:#F9FAFB;border:1.5px solid #E5E7EB;border-radius:6px;padding:10px 12px">
+          <div style="font-size:0.72rem;font-weight:700;color:#374151;margin-bottom:4px">③ Tenant Isolation on Every Query</div>
+          <div style="font-size:0.67rem;color:#6B7280">Every DB query includes WHERE org_id = :org_id<br>org_id extracted from JWT — never from request body<br>Prevents cross-tenant data leaks at the service layer</div>
+        </div>
+
+        <div style="text-align:center;color:var(--muted);font-size:0.8rem">↓</div>
+
+        <div style="background:#F9FAFB;border:1.5px solid #E5E7EB;border-radius:6px;padding:10px 12px">
+          <div style="font-size:0.72rem;font-weight:700;color:#374151;margin-bottom:4px">④ Token Refresh + Reuse Detection</div>
+          <div style="font-size:0.67rem;color:#6B7280">401 → clearAuth() → redirect /login (no refresh attempt)<br>Refresh tokens: SHA-256 hashed in DB, one-time-use<br>Reused revoked token → revoke ALL tokens for that user</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">JWT Payload Structure</div>
+      <div style="background:#1C1410;border-radius:6px;padding:16px;font-family:monospace;font-size:0.72rem;color:#F1DEA8;margin-bottom:12px">
+        <span style="color:#CD7A3E">// Access Token (15 min)</span><br>
+        {<br>
+        &nbsp;&nbsp;<span style="color:#86EFAC">"sub"</span>: <span style="color:#F1DEA8">"uuid-of-user"</span>,<br>
+        &nbsp;&nbsp;<span style="color:#86EFAC">"email"</span>: <span style="color:#F1DEA8">"user@example.com"</span>,<br>
+        &nbsp;&nbsp;<span style="color:#86EFAC">"org_id"</span>: <span style="color:#F1DEA8">"uuid-of-org"</span>,&nbsp;&nbsp;<span style="color:#CD7A3E">// after switch</span><br>
+        &nbsp;&nbsp;<span style="color:#86EFAC">"role"</span>: <span style="color:#F1DEA8">"ORG_ADMIN"</span>,<br>
+        &nbsp;&nbsp;<span style="color:#86EFAC">"exp"</span>: <span style="color:#F1DEA8">1715123456</span><br>
+        }<br><br>
+        <span style="color:#CD7A3E">// RBAC Roles</span><br>
+        SUPERADMIN &gt; ORG_ADMIN &gt; ADVISOR<br>
+        ANALYST &gt; CLIENT &gt; VIEWER
+      </div>
+
+      <div class="card-title" style="margin-top:12px">Rate Limits (per IP)</div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;justify-content:space-between;font-size:0.72rem;padding:4px 0;border-bottom:1px solid var(--border)">
+          <span>POST /auth/register</span><span style="font-weight:600;color:var(--fire)">10/min</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.72rem;padding:4px 0;border-bottom:1px solid var(--border)">
+          <span>POST /auth/login</span><span style="font-weight:600;color:var(--fire)">10/min</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.72rem;padding:4px 0;border-bottom:1px solid var(--border)">
+          <span>POST /auth/refresh</span><span style="font-weight:600;color:var(--gold)">20/min</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.72rem;padding:4px 0;border-bottom:1px solid var(--border)">
+          <span>POST /auth/change-password</span><span style="font-weight:600;color:var(--fire)">5/min</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.72rem;padding:4px 0;border-bottom:1px solid var(--border)">
+          <span>POST /ai/conversations</span><span style="font-weight:600;color:var(--gold)">30/min</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.72rem;padding:4px 0">
+          <span>POST /ai/.../messages</span><span style="font-weight:600;color:var(--gold)">60/min</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- 5. DATABASE SCHEMA                                          -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section>
+  <h2><span class="num">05</span> Database Schema — 15 Tables + FTS5 Index</h2>
+  <div class="schema-grid">
+
+    <div class="table-card">
+      <div class="table-header" style="background:#49120F">👤 users</div>
+      <div class="table-fields">
+        <div class="field"><span class="field-name pk">▶ id</span><span class="field-type">UUID PK</span></div>
+        <div class="field"><span class="field-name">email</span><span class="field-type">TEXT UNIQUE</span></div>
+        <div class="field"><span class="field-name">full_name</span><span class="field-type">TEXT</span></div>
+        <div class="field"><span class="field-name">password_hash</span><span class="field-type">TEXT (argon2id)</span></div>
+        <div class="field"><span class="field-name">is_active</span><span class="field-type">BOOL</span></div>
+        <div class="field"><span class="field-name">failed_login_count</span><span class="field-type">INT</span></div>
+        <div class="field"><span class="field-name">locked_until</span><span class="field-type">DATETIME</span></div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header" style="background:#7C2220">🏢 organizations</div>
+      <div class="table-fields">
+        <div class="field"><span class="field-name pk">▶ id</span><span class="field-type">UUID PK</span></div>
+        <div class="field"><span class="field-name">name</span><span class="field-type">TEXT</span></div>
+        <div class="field"><span class="field-name">slug</span><span class="field-type">TEXT UNIQUE</span></div>
+        <div class="field"><span class="field-name">plan</span><span class="field-type">ENUM</span></div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header" style="background:#854023">🔗 memberships</div>
+      <div class="table-fields">
+        <div class="field"><span class="field-name pk">▶ id</span><span class="field-type">UUID PK</span></div>
+        <div class="field"><span class="field-name fk">↗ user_id</span><span class="field-type">FK → users</span></div>
+        <div class="field"><span class="field-name fk">↗ org_id</span><span class="field-type">FK → orgs</span></div>
+        <div class="field"><span class="field-name">role</span><span class="field-type">ENUM</span></div>
+        <div class="field"><span class="field-name">is_active</span><span class="field-type">BOOL</span></div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header" style="background:#9F6920">📁 portfolios</div>
+      <div class="table-fields">
+        <div class="field"><span class="field-name pk">▶ id</span><span class="field-type">UUID PK</span></div>
+        <div class="field"><span class="field-name fk">↗ org_id</span><span class="field-type">FK → orgs</span></div>
+        <div class="field"><span class="field-name">name</span><span class="field-type">TEXT</span></div>
+        <div class="field"><span class="field-name">portfolio_type</span><span class="field-type">ENUM</span></div>
+        <div class="field"><span class="field-name">status</span><span class="field-type">ENUM (ACTIVE…)</span></div>
+        <div class="field"><span class="field-name">inception_date</span><span class="field-type">DATE</span></div>
+        <div class="field"><span class="field-name">base_currency</span><span class="field-type">CHAR(3)</span></div>
+        <div class="field"><span class="field-name">deleted_at</span><span class="field-type">DATETIME (soft)</span></div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header" style="background:#0369A1">🏦 accounts</div>
+      <div class="table-fields">
+        <div class="field"><span class="field-name pk">▶ id</span><span class="field-type">UUID PK</span></div>
+        <div class="field"><span class="field-name fk">↗ portfolio_id</span><span class="field-type">FK → portfolios</span></div>
+        <div class="field"><span class="field-name fk">↗ org_id</span><span class="field-type">FK → orgs</span></div>
+        <div class="field"><span class="field-name">name</span><span class="field-type">TEXT</span></div>
+        <div class="field"><span class="field-name">account_type</span><span class="field-type">ENUM</span></div>
+        <div class="field"><span class="field-name">custodian</span><span class="field-type">TEXT</span></div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header" style="background:#6D28D9">📊 assets</div>
+      <div class="table-fields">
+        <div class="field"><span class="field-name pk">▶ id</span><span class="field-type">UUID PK</span></div>
+        <div class="field"><span class="field-name fk">↗ org_id</span><span class="field-type">FK → orgs</span></div>
+        <div class="field"><span class="field-name">symbol</span><span class="field-type">TEXT</span></div>
+        <div class="field"><span class="field-name">name</span><span class="field-type">TEXT</span></div>
+        <div class="field"><span class="field-name">asset_type</span><span class="field-type">ENUM (EQUITY…)</span></div>
+        <div class="field"><span class="field-name">isin / cusip</span><span class="field-type">TEXT nullable</span></div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header" style="background:#6D28D9" style="opacity:0.85">💹 asset_prices</div>
+      <div class="table-fields">
+        <div class="field"><span class="field-name pk">▶ id</span><span class="field-type">UUID PK</span></div>
+        <div class="field"><span class="field-name fk">↗ asset_id</span><span class="field-type">FK → assets</span></div>
+        <div class="field"><span class="field-name fk">↗ org_id</span><span class="field-type">FK → orgs</span></div>
+        <div class="field"><span class="field-name">price_date</span><span class="field-type">DATE</span></div>
+        <div class="field"><span class="field-name">close</span><span class="field-type">DECIMAL</span></div>
+        <div class="field"><span class="field-name">open / high / low</span><span class="field-type">DECIMAL nullable</span></div>
+        <div class="field"><span class="field-name">UNIQUE</span><span class="field-type">(asset_id, price_date)</span></div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header" style="background:#15803D">📦 holdings</div>
+      <div class="table-fields">
+        <div class="field"><span class="field-name pk">▶ id</span><span class="field-type">UUID PK</span></div>
+        <div class="field"><span class="field-name fk">↗ portfolio_id</span><span class="field-type">FK → portfolios</span></div>
+        <div class="field"><span class="field-name fk">↗ account_id</span><span class="field-type">FK → accounts</span></div>
+        <div class="field"><span class="field-name fk">↗ asset_id</span><span class="field-type">FK → assets</span></div>
+        <div class="field"><span class="field-name fk">↗ org_id</span><span class="field-type">FK → orgs</span></div>
+        <div class="field"><span class="field-name">quantity</span><span class="field-type">DECIMAL</span></div>
+        <div class="field"><span class="field-name">cost_basis</span><span class="field-type">DECIMAL</span></div>
+        <div class="field"><span class="field-name">unrealized_gain_loss</span><span class="field-type">DECIMAL</span></div>
+        <div class="field"><span class="field-name">as_of_date</span><span class="field-type">DATE</span></div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header" style="background:#0369A1">💸 transactions</div>
+      <div class="table-fields">
+        <div class="field"><span class="field-name pk">▶ id</span><span class="field-type">UUID PK</span></div>
+        <div class="field"><span class="field-name fk">↗ portfolio_id</span><span class="field-type">FK → portfolios</span></div>
+        <div class="field"><span class="field-name fk">↗ account_id</span><span class="field-type">FK → accounts</span></div>
+        <div class="field"><span class="field-name fk">↗ asset_id</span><span class="field-type">FK nullable</span></div>
+        <div class="field"><span class="field-name">transaction_type</span><span class="field-type">ENUM (BUY/SELL…)</span></div>
+        <div class="field"><span class="field-name">trade_date</span><span class="field-type">DATE</span></div>
+        <div class="field"><span class="field-name">quantity / price</span><span class="field-type">DECIMAL</span></div>
+        <div class="field"><span class="field-name">net_amount / fees</span><span class="field-type">DECIMAL</span></div>
+        <div class="field"><span class="field-name">external_id</span><span class="field-type">TEXT UNIQUE/org</span></div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header" style="background:#BE185D">🤖 ai_conversations</div>
+      <div class="table-fields">
+        <div class="field"><span class="field-name pk">▶ id</span><span class="field-type">UUID PK</span></div>
+        <div class="field"><span class="field-name fk">↗ org_id</span><span class="field-type">FK → orgs</span></div>
+        <div class="field"><span class="field-name fk">↗ user_id</span><span class="field-type">FK → users</span></div>
+        <div class="field"><span class="field-name">title</span><span class="field-type">TEXT</span></div>
+        <div class="field"><span class="field-name">model</span><span class="field-type">TEXT</span></div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header" style="background:#BE185D" style="opacity:0.8">💬 ai_messages</div>
+      <div class="table-fields">
+        <div class="field"><span class="field-name pk">▶ id</span><span class="field-type">UUID PK</span></div>
+        <div class="field"><span class="field-name fk">↗ conversation_id</span><span class="field-type">FK → conversations</span></div>
+        <div class="field"><span class="field-name">role</span><span class="field-type">user / assistant</span></div>
+        <div class="field"><span class="field-name">content</span><span class="field-type">TEXT</span></div>
+        <div class="field"><span class="field-name">tool_calls</span><span class="field-type">JSON nullable</span></div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header" style="background:#374151">🔑 refresh_tokens</div>
+      <div class="table-fields">
+        <div class="field"><span class="field-name pk">▶ id</span><span class="field-type">UUID PK</span></div>
+        <div class="field"><span class="field-name fk">↗ user_id</span><span class="field-type">FK → users</span></div>
+        <div class="field"><span class="field-name">token_hash</span><span class="field-type">SHA-256 hex</span></div>
+        <div class="field"><span class="field-name">expires_at</span><span class="field-type">DATETIME</span></div>
+        <div class="field"><span class="field-name">revoked_at</span><span class="field-type">DATETIME nullable</span></div>
+        <div class="field"><span class="field-name">ip_address</span><span class="field-type">TEXT</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="margin-top:16px;background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:14px">
+    <div class="card-title">Key Relationships</div>
+    <div style="font-size:0.75rem;color:var(--muted);line-height:2">
+      <strong style="color:var(--ink)">org →</strong> many portfolios →  many accounts →  many holdings →  one asset (with prices)<br>
+      <strong style="color:var(--ink)">org →</strong> many transactions (linked to portfolio + account + asset optionally)<br>
+      <strong style="color:var(--ink)">org →</strong> many AI conversations → many messages<br>
+      <strong style="color:var(--ink)">user →</strong> many orgs (via memberships with role) + many refresh_tokens
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- 6. FRONTEND PAGES                                           -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section>
+  <h2><span class="num">06</span> Frontend Page Map — 9 Screens</h2>
+  <div class="page-tree">
+
+    <div class="sidebar-mock">
+      <div class="brand">OldMoney</div>
+      <div class="nav-item active"><span class="icon">📊</span> Dashboard</div>
+      <div class="nav-item"><span class="icon">📁</span> Portfolios</div>
+      <div class="nav-item"><span class="icon">💸</span> Transactions</div>
+      <div class="nav-item"><span class="icon">📦</span> Assets</div>
+      <div class="nav-item"><span class="icon">📥</span> Imports</div>
+      <div class="nav-item"><span class="icon">🤖</span> AI</div>
+      <div class="nav-item"><span class="icon">🏛️</span> Ownership</div>
+      <div class="nav-item"><span class="icon">⚙️</span> Settings</div>
+      <br>
+      <div style="font-size:0.65rem;opacity:0.4;border-top:1px solid rgba(255,255,255,0.1);padding-top:10px">⌘K — Command Palette<br>🔍 Global Search (FTS5)</div>
+    </div>
+
+    <div class="pages-detail">
+
+      <div class="page-card">
+        <div class="page-route">/dashboard</div>
+        <div class="page-name">📊 Dashboard</div>
+        <ul class="page-features">
+          <li>Total AUM + daily P&L KPI cards</li>
+          <li>Portfolio value time-series chart</li>
+          <li>Asset allocation donut chart</li>
+          <li>Top holdings table</li>
+          <li>Recent transactions</li>
+          <li>Time grain: 30d / 90d / 1y</li>
+        </ul>
+      </div>
+
+      <div class="page-card">
+        <div class="page-route">/portfolios + /portfolios/[id]</div>
+        <div class="page-name">📁 Portfolios</div>
+        <ul class="page-features">
+          <li>Portfolio list with AUM cards</li>
+          <li>Create portfolio dialog</li>
+          <li>Detail: tabs (overview / holdings / performance)</li>
+          <li>Per-portfolio allocation chart</li>
+          <li>Account management</li>
+        </ul>
+      </div>
+
+      <div class="page-card">
+        <div class="page-route">/transactions</div>
+        <div class="page-name">💸 Transactions</div>
+        <ul class="page-features">
+          <li>Bloomberg-density table</li>
+          <li>Filters: type, date range, portfolio</li>
+          <li>Export CSV button</li>
+          <li>Add transaction dialog</li>
+          <li>Paginator (20/50/100 per page)</li>
+        </ul>
+      </div>
+
+      <div class="page-card">
+        <div class="page-route">/assets</div>
+        <div class="page-name">📦 Assets</div>
+        <ul class="page-features">
+          <li>Asset list with latest price</li>
+          <li>Search by symbol / name</li>
+          <li>Filter by asset type</li>
+          <li>Price history per asset</li>
+        </ul>
+      </div>
+
+      <div class="page-card">
+        <div class="page-route">/imports</div>
+        <div class="page-name">📥 Imports</div>
+        <ul class="page-features">
+          <li>Import wizard (drag + drop)</li>
+          <li>Preview before commit</li>
+          <li>Targets: transactions / holdings / prices</li>
+          <li>Formats: CSV, TSV, JSON, XLSX</li>
+          <li>Import history log</li>
+        </ul>
+      </div>
+
+      <div class="page-card">
+        <div class="page-route">/ai</div>
+        <div class="page-name">🤖 AI Chat</div>
+        <ul class="page-features">
+          <li>SSE streaming (ReadableStream)</li>
+          <li>Conversation history sidebar</li>
+          <li>Collapsible tool call viewer</li>
+          <li>SafeMessage HTML sanitization</li>
+          <li>8000 char limit + live counter</li>
+          <li>Suggested prompts grid</li>
+        </ul>
+      </div>
+
+      <div class="page-card">
+        <div class="page-route">/settings</div>
+        <div class="page-name">⚙️ Settings</div>
+        <ul class="page-features">
+          <li>Tab: Org (name, plan)</li>
+          <li>Tab: Members (invite, roles, remove)</li>
+          <li>Tab: Account (profile, email)</li>
+          <li>Tab: Appearance (theme toggle)</li>
+          <li>Tab: Security (change password)</li>
+        </ul>
+      </div>
+
+      <div class="page-card">
+        <div class="page-route">/ownership</div>
+        <div class="page-name">🏛️ Ownership Graph</div>
+        <ul class="page-features">
+          <li>Placeholder — Phase 2</li>
+          <li>Planned: force-directed graph</li>
+          <li>Entity → Portfolio → Account chains</li>
+          <li>Beneficial ownership mapping</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- 7. AI TOOL CALLING FLOW                                     -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section>
+  <h2><span class="num">07</span> AI Tool Calling — How the AI Reads Your Data</h2>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Streaming Chat Flow</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="background:#FFF1F2;border:1px solid #FECACA;border-radius:6px;padding:10px 12px;font-size:0.72rem">
+          <strong>① User message</strong> → POST /ai/conversations/{id}/messages<br>
+          <span style="color:#6B7280">Validates: max 8000 chars, org context, conversation ownership</span>
+        </div>
+        <div style="text-align:center;color:var(--muted)">↓</div>
+        <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:6px;padding:10px 12px;font-size:0.72rem">
+          <strong>② System prompt</strong> injected with org_id<br>
+          <span style="color:#6B7280">7 injection-defense rules. Message history sent to Ollama.</span>
+        </div>
+        <div style="text-align:center;color:var(--muted)">↓</div>
+        <div style="background:#FEFCE8;border:1px solid #FDE68A;border-radius:6px;padding:10px 12px;font-size:0.72rem">
+          <strong>③ Tool calls</strong> (if LLM decides to call them)<br>
+          <span style="color:#6B7280">Each call verified: portfolio_id must belong to org_id</span>
+        </div>
+        <div style="text-align:center;color:var(--muted)">↓</div>
+        <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:6px;padding:10px 12px;font-size:0.72rem">
+          <strong>④ SSE stream</strong> back to browser (Server-Sent Events)<br>
+          <span style="color:#6B7280">Each token streamed. Tool results inserted inline.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Available AI Tools</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="border:1.5px solid var(--border);border-radius:6px;padding:10px 12px">
+          <div style="font-size:0.75rem;font-weight:700;font-family:monospace;color:var(--seal-brown);margin-bottom:3px">get_portfolio(portfolio_id)</div>
+          <div style="font-size:0.68rem;color:var(--muted)">Returns portfolio metadata + summary. Verifies org ownership before executing.</div>
+        </div>
+        <div style="border:1.5px solid var(--border);border-radius:6px;padding:10px 12px">
+          <div style="font-size:0.75rem;font-weight:700;font-family:monospace;color:var(--seal-brown);margin-bottom:3px">get_holdings(portfolio_id)</div>
+          <div style="font-size:0.68rem;color:var(--muted)">Returns current holdings with prices, values, unrealized P&L.</div>
+        </div>
+        <div style="border:1.5px solid var(--border);border-radius:6px;padding:10px 12px">
+          <div style="font-size:0.75rem;font-weight:700;font-family:monospace;color:var(--seal-brown);margin-bottom:3px">list_transactions(portfolio_id, limit?)</div>
+          <div style="font-size:0.68rem;color:var(--muted)">Returns recent transactions for a portfolio. Sorted by trade_date desc.</div>
+        </div>
+        <div style="border:1.5px solid var(--border);border-radius:6px;padding:10px 12px">
+          <div style="font-size:0.75rem;font-weight:700;font-family:monospace;color:var(--seal-brown);margin-bottom:3px">search_documents(query, types?)</div>
+          <div style="font-size:0.68rem;color:var(--muted)">Full-text search (FTS5) across portfolios, assets, transactions. Org-scoped.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- 8. SECURITY LAYERS                                          -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section>
+  <h2><span class="num">08</span> Security Defence-in-Depth — 7 Layers</h2>
+  <div class="security-onion">
+    <div class="sec-layer sec-1">
+      <span class="sec-icon">🔒</span>
+      <span class="sec-name">Infrastructure</span>
+      <span class="sec-detail">Ports bound to 127.0.0.1 only · Non-root Docker user (uid 1001) · read-only web container · no-new-privileges · SECRET_KEY ≥ 32 chars enforced at startup</span>
+    </div>
+    <div class="sec-layer sec-2">
+      <span class="sec-icon">🛡️</span>
+      <span class="sec-name">HTTP Headers</span>
+      <span class="sec-detail">CSP (default-src 'self') · X-Frame-Options: DENY · X-Content-Type-Options: nosniff · Referrer-Policy · Permissions-Policy (camera/mic/geo off)</span>
+    </div>
+    <div class="sec-layer sec-3">
+      <span class="sec-icon">⏱️</span>
+      <span class="sec-name">Rate Limiting</span>
+      <span class="sec-detail">slowapi per-IP · Login/register 10/min · Change-password 5/min · AI messages 60/min · Body size limit 1 MB JSON / 10 MB uploads</span>
+    </div>
+    <div class="sec-layer sec-4">
+      <span class="sec-icon">🔑</span>
+      <span class="sec-name">Authentication</span>
+      <span class="sec-detail">argon2id passwords · JWT access (15 min) + refresh (30 days, SHA-256 hashed) · Refresh token rotation + reuse detection (revoke all on reuse)</span>
+    </div>
+    <div class="sec-layer sec-5">
+      <span class="sec-icon">🏢</span>
+      <span class="sec-name">Tenant Isolation</span>
+      <span class="sec-detail">org_id on every DB query · Extracted from JWT only (never request body) · RBAC roles (SUPERADMIN → VIEWER) · Membership check on all org ops</span>
+    </div>
+    <div class="sec-layer sec-6">
+      <span class="sec-icon">📁</span>
+      <span class="sec-name">Input Validation</span>
+      <span class="sec-detail">Pydantic v2 on all inputs · File uploads: extension + MIME + filename chars + size · FTS5: named params (no SQL injection) · target param whitelist</span>
+    </div>
+    <div class="sec-layer sec-7">
+      <span class="sec-icon">🤖</span>
+      <span class="sec-name">AI Security</span>
+      <span class="sec-detail">Org-scoped system prompt with injection rules · Tool call ownership check (portfolio.org_id == request.org_id) · Message length limit (8000 chars) · SafeMessage HTML sanitization in browser</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- 9. FILE STRUCTURE                                           -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section>
+  <h2><span class="num">09</span> File Structure at a Glance</h2>
+  <div class="grid-2">
+    <div>
+      <div class="card-title" style="margin-bottom:8px">Backend — /backend</div>
+      <div style="background:#1C1410;border-radius:8px;padding:16px;font-family:monospace;font-size:0.7rem;color:#F1DEA8;line-height:1.9">
+        <span style="color:#CD7A3E">app/</span><br>
+        &nbsp;&nbsp;<span style="color:#9F6920">core/</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#6B5A4E"># config, db, middleware, security</span><br>
+        &nbsp;&nbsp;<span style="color:#9F6920">modules/</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#F1DEA8">auth/</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#6B5A4E"># models, service, router, schemas</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#F1DEA8">organizations/</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#F1DEA8">portfolios/</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#F1DEA8">holdings/</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#F1DEA8">transactions/</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#F1DEA8">assets/</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#F1DEA8">dashboard/</span>&nbsp;&nbsp;<span style="color:#6B5A4E"># aggregation queries</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#F1DEA8">ai/</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#6B5A4E"># SSE, tool calling</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#F1DEA8">imports/</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#F1DEA8">search/</span><br>
+        &nbsp;&nbsp;<span style="color:#9F6920">shared/</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#6B5A4E"># deps, responses, base_model</span><br>
+        &nbsp;&nbsp;<span style="color:#CD7A3E">main.py</span><br>
+        <span style="color:#CD7A3E">alembic/versions/</span>&nbsp;&nbsp;<span style="color:#6B5A4E"># 0001 schema, 0002 indexes</span><br>
+        <span style="color:#CD7A3E">scripts/seed.py</span>&nbsp;&nbsp;&nbsp;<span style="color:#6B5A4E"># 10K tx, 2yr prices, GBM</span><br>
+        <span style="color:#CD7A3E">tests/</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#6B5A4E"># 196 tests, 8 files</span>
+      </div>
+    </div>
+    <div>
+      <div class="card-title" style="margin-bottom:8px">Frontend — /frontend/src</div>
+      <div style="background:#1C1410;border-radius:8px;padding:16px;font-family:monospace;font-size:0.7rem;color:#F1DEA8;line-height:1.9">
+        <span style="color:#CD7A3E">app/</span><br>
+        &nbsp;&nbsp;<span style="color:#9F6920">(auth)/</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#6B5A4E"># login, register (unauthenticated)</span><br>
+        &nbsp;&nbsp;<span style="color:#9F6920">(app)/</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#6B5A4E"># all protected pages</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#F1DEA8">dashboard/</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#F1DEA8">portfolios/</span>&nbsp;<span style="color:#6B5A4E"># list + [id] detail</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#F1DEA8">transactions/</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#F1DEA8">assets/</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#F1DEA8">imports/</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#F1DEA8">ai/</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#F1DEA8">settings/</span><br>
+        <span style="color:#CD7A3E">components/</span><br>
+        &nbsp;&nbsp;<span style="color:#9F6920">ui/</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#6B5A4E"># button, card, dialog, badge…</span><br>
+        &nbsp;&nbsp;<span style="color:#9F6920">charts/</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#6B5A4E"># ECharts performance, allocation</span><br>
+        &nbsp;&nbsp;<span style="color:#9F6920">tables/</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#6B5A4E"># HoldingsTable, TransactionsTable</span><br>
+        &nbsp;&nbsp;<span style="color:#9F6920">layout/</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#6B5A4E"># Sidebar, TopBar, CommandPalette</span><br>
+        <span style="color:#CD7A3E">store/</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#6B5A4E"># auth.store, ui.store (Zustand)</span><br>
+        <span style="color:#CD7A3E">lib/</span><br>
+        &nbsp;&nbsp;<span style="color:#9F6920">hooks/</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#6B5A4E"># TanStack Query hooks per module</span><br>
+        &nbsp;&nbsp;<span style="color:#9F6920">api.ts</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#6B5A4E"># typed API client</span><br>
+        <span style="color:#CD7A3E">styles/tokens.css</span>&nbsp;<span style="color:#6B5A4E"># OKLCH design tokens</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- FOOTER                                                      -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div style="margin-top:48px;padding-top:24px;border-top:2px solid var(--buttermilk);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+  <div>
+    <div style="font-family:Georgia,serif;font-weight:700;font-size:1rem;color:var(--seal-brown)">OldMoney</div>
+    <div style="font-size:0.7rem;color:var(--muted)">Local-first · No cloud · No paid APIs · 196 tests passing</div>
+  </div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap">
+    <span class="chip chip-orange">FastAPI + Python 3.12</span>
+    <span class="chip chip-blue">Next.js 15</span>
+    <span class="chip chip-purple">SQLite WAL</span>
+    <span class="chip chip-red">Ollama llama3.1:8b</span>
+    <span class="chip chip-gold">196 tests</span>
+  </div>
+</div>
+
+</body>
+</html>
