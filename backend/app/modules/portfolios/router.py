@@ -158,3 +158,39 @@ async def get_summary(
     svc = PortfolioService(db)
     summary = await svc.get_summary(portfolio_id, org_id)
     return success(summary.model_dump())
+
+
+@router.get("/{portfolio_id}/performance", response_model=dict)
+async def get_portfolio_performance(
+    portfolio_id: UUID,
+    request: Request,
+    days: int = Query(default=90, ge=1, le=1825),
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    org_id = _get_org_id(request)
+    # Verify portfolio belongs to org
+    svc = PortfolioService(db)
+    await svc.get_portfolio(portfolio_id, org_id)  # raises NotFoundError if not found/wrong org
+
+    from app.modules.dashboard.service import DashboardService
+    dash_svc = DashboardService(db, org_id)
+    points = await dash_svc.get_performance(days=days, portfolio_id=portfolio_id)
+    return success([p.model_dump() for p in points])
+
+
+@router.get("/{portfolio_id}/allocation", response_model=dict)
+async def get_portfolio_allocation(
+    portfolio_id: UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    org_id = _get_org_id(request)
+    svc = PortfolioService(db)
+    await svc.get_portfolio(portfolio_id, org_id)  # auth check
+
+    from app.modules.dashboard.service import DashboardService
+    dash_svc = DashboardService(db, org_id)
+    items = await dash_svc.get_allocation(portfolio_id=portfolio_id)
+    return success([i.model_dump() for i in items])

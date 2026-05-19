@@ -141,6 +141,7 @@ from app.modules.transactions.router import router as tx_router
 from app.modules.imports.router import router as import_router
 from app.modules.search.router import router as search_router
 from app.modules.ai.router import router as ai_router
+from app.modules.dashboard.router import router as dashboard_router
 
 prefix = settings.API_V1_PREFIX
 
@@ -153,6 +154,7 @@ app.include_router(tx_router, prefix=prefix)
 app.include_router(import_router, prefix=prefix)
 app.include_router(search_router, prefix=prefix)
 app.include_router(ai_router, prefix=prefix)
+app.include_router(dashboard_router, prefix=prefix)
 
 
 @app.get("/health")

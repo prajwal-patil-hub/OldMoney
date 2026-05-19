@@ -14,6 +14,21 @@ from app.core.database import get_db
 from app.main import app
 from app.shared.base_model import Base
 
+# Disable rate limiting for all tests — every request comes from 127.0.0.1
+# which would exhaust per-IP limits within a single test run.
+from app.modules.auth.router import limiter as _auth_limiter
+from app.modules.ai.router import limiter as _ai_limiter
+_auth_limiter.enabled = False
+_ai_limiter.enabled = False
+
+
+# Promote anyio_backend to session scope so it is compatible with the
+# session-scoped setup_db fixture. Without this, anyio raises ScopeMismatch
+# when a test file is collected before setup_db has run.
+@pytest.fixture(scope="session")
+def anyio_backend():
+    return "asyncio"
+
 # Use in-memory SQLite for tests
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
