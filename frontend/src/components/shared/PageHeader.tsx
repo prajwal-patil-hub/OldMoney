@@ -15,10 +15,13 @@ interface PageHeaderProps {
   asOf?: string
   /** Primary action button (or group), slotted top-right */
   action?: React.ReactNode
+  /** Alias for action — accepts a button or group of buttons */
+  actions?: React.ReactNode
   className?: string
 }
 
-export function PageHeader({ title, description, asOf, action, className }: PageHeaderProps) {
+export function PageHeader({ title, description, asOf, action, actions, className }: PageHeaderProps) {
+  const actionSlot = actions ?? action
   const [descOpen, setDescOpen] = React.useState(false)
 
   return (
@@ -61,8 +64,8 @@ export function PageHeader({ title, description, asOf, action, className }: Page
         </div>
 
         {/* Action slot */}
-        {action && (
-          <div className="shrink-0 flex items-center gap-2">{action}</div>
+        {actionSlot && (
+          <div className="shrink-0 flex items-center gap-2">{actionSlot}</div>
         )}
       </div>
 

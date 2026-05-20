@@ -17,7 +17,7 @@ const fraunces = Fraunces({
   variable: '--font-display',
   display: 'swap',
   preload: true,
-  weight: ['400', '700'],
+  weight: 'variable',
   axes: ['opsz'], // optical size axis for crisp KPI numbers at large sizes
 })
 

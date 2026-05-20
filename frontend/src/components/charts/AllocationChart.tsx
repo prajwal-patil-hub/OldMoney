@@ -24,6 +24,8 @@ export interface AllocationChartProps {
   data: AllocationData[]
   loading?: boolean
   height?: number
+  currency?: string
+  showLegend?: boolean
   onTypeClick?: (assetType: string | null) => void
 }
 
@@ -41,6 +43,8 @@ export function AllocationChart({
   data,
   loading = false,
   height = 280,
+  currency: _currency,
+  showLegend = true,
   onTypeClick,
 }: AllocationChartProps) {
   const [activeType, setActiveType] = useState<string | null>(null)
@@ -93,7 +97,6 @@ export function AllocationChart({
           top: '38%',
           style: {
             text: formatCurrency(totalValue),
-            textAlign: 'center',
             fill: 'var(--text-primary)',
             fontSize: 20,
             fontFamily: 'var(--font-display), "Fraunces", Georgia, serif',
@@ -106,7 +109,6 @@ export function AllocationChart({
           top: '52%',
           style: {
             text: 'Total AUM',
-            textAlign: 'center',
             fill: 'var(--text-muted)',
             fontSize: 12,
             fontFamily: 'var(--font-sans), "Inter", system-ui, sans-serif',
@@ -180,7 +182,7 @@ export function AllocationChart({
       />
 
       {/* Custom legend rendered below chart */}
-      <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5">
+      {showLegend && <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5">
         {data.map((item, i) => {
           const label = ASSET_TYPE_LABELS[item.asset_type] ?? item.asset_type
           const color = PALETTE[i % PALETTE.length]
@@ -210,7 +212,7 @@ export function AllocationChart({
             </button>
           )
         })}
-      </div>
+      </div>}
     </div>
   )
 }

@@ -14,6 +14,8 @@ export interface Portfolio {
   total_cost?: number
   unrealized_gain?: number
   unrealized_gain_pct?: number
+  ytd_return?: number
+  ytd_return_pct?: number
   day_change?: number
   day_change_pct?: number
 }

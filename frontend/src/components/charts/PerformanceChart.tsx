@@ -16,12 +16,15 @@ export interface PerformanceChartProps {
   loading?: boolean
   height?: number
   grain?: '1W' | '1M' | '3M' | 'YTD' | '1Y'
+  currency?: string
 }
 
 export function PerformanceChart({
   data,
   loading = false,
   height = 280,
+  grain: _grain,
+  currency: _currency,
 }: PerformanceChartProps) {
   const option = useMemo((): EChartsOption => {
     const ACCENT = 'oklch(49% 0.116 60)'

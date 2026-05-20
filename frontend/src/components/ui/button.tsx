@@ -33,6 +33,9 @@ const buttonVariants = cva(
         // Link style — no background
         link:
           'text-brand-primary underline-offset-4 hover:underline p-0 h-auto',
+        // Outline — border with transparent background
+        outline:
+          'bg-transparent text-text-primary border border-border hover:bg-surface-muted hover:border-border-strong',
       },
       size: {
         sm:      'h-7 px-2.5 text-xs [&_svg]:size-3',

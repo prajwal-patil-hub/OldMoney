@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatCurrency, formatPct, formatDate, cn } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import type { TimeSeriesPoint } from '@/types/api'
 
 function generateMockPerformance(): TimeSeriesPoint[] {

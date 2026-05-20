@@ -449,7 +449,6 @@ export function ImportWizard({ onComplete }: { onComplete?: () => void }) {
                             <AlertCircle
                               className="size-4 text-danger"
                               aria-label={`Error: ${row.errors[0]?.message}`}
-                              title={row.errors[0]?.message}
                             />
                           )}
                         </td>

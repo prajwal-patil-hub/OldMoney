@@ -1,7 +1,6 @@
 'use client'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { useEffect, useRef } from 'react'
 import { initApiStore } from '@/lib/api'
 import { useAuthStore } from '@/store/auth.store'
@@ -65,9 +64,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ApiStoreInitializer />
       {children}
-      {process.env.NODE_ENV === 'development' && (
-        <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
-      )}
     </QueryClientProvider>
   )
 }

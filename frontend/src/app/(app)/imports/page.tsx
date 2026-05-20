@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ImportWizard } from '@/components/forms/ImportWizard'
-import { formatDate, formatRelativeTime } from '@/lib/utils'
+import { formatRelativeTime } from '@/lib/utils'
 import { STALE_TIME } from '@/lib/constants'
 
 export default function ImportsPage() {

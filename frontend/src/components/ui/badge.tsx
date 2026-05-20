@@ -30,6 +30,12 @@ const badgeVariants = cva(
         // Outline variant — minimal, just a border
         outline:
           'bg-transparent text-text-secondary border-border',
+        // Secondary — surface-muted background
+        secondary:
+          'bg-surface-muted text-text-secondary border-border',
+        // Gold — warm gold accent for private equity, premium
+        gold:
+          'bg-accent-subtle text-accent-text border-accent/20',
       },
     },
     defaultVariants: {

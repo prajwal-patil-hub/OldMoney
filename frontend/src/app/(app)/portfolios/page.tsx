@@ -19,7 +19,7 @@ export default function PortfoliosPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [createOpen, setCreateOpen] = useState(searchParams.get('create') === 'true')
-  const [page, setPage] = useState(1)
+  const [page] = useState(1)
 
   const { data, isLoading } = usePortfolios({ page, page_size: 12 })
   const portfolios = data?.items ?? []
