@@ -173,7 +173,8 @@ class TestPortfolioAccounts:
 
         resp = await client.get(f"/api/v1/portfolios/{portfolio_id}/accounts", headers=headers)
         assert resp.status_code == 200
-        assert len(resp.json()["data"]) == 3
+        # Portfolio auto-creates a default account on creation, so 3 manual + 1 auto = 4
+        assert len(resp.json()["data"]) == 4
 
     async def test_portfolio_with_accounts_in_get(self, client: AsyncClient, org_with_token: dict):
         headers = org_with_token["headers"]
@@ -188,8 +189,10 @@ class TestPortfolioAccounts:
         resp = await client.get(f"/api/v1/portfolios/{portfolio_id}", headers=headers)
         assert resp.status_code == 200
         portfolio_data = resp.json()["data"]
-        assert len(portfolio_data["accounts"]) == 1
-        assert portfolio_data["accounts"][0]["name"] == "Main Account"
+        # Portfolio auto-creates a default account on creation, so 1 manual + 1 auto = 2
+        assert len(portfolio_data["accounts"]) == 2
+        account_names = {a["name"] for a in portfolio_data["accounts"]}
+        assert "Main Account" in account_names
 
 
 class TestPortfolioAuthorization:

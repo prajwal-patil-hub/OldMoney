@@ -52,11 +52,11 @@ function generateMockPerformance(days: number) {
 }
 
 const MOCK_ALLOCATION = [
-  { asset_type: 'equity' as const, value: 1_225_000, weight: 0.5, count: 12 },
-  { asset_type: 'fixed_income' as const, value: 490_000, weight: 0.2, count: 5 },
-  { asset_type: 'real_estate' as const, value: 367_500, weight: 0.15, count: 3 },
-  { asset_type: 'private_equity' as const, value: 245_000, weight: 0.1, count: 2 },
-  { asset_type: 'cash' as const, value: 122_500, weight: 0.05, count: 1 },
+  { asset_type: 'EQUITY' as const, value: 1_225_000, weight: 0.5, count: 12 },
+  { asset_type: 'BOND' as const, value: 490_000, weight: 0.2, count: 5 },
+  { asset_type: 'REAL_ESTATE' as const, value: 367_500, weight: 0.15, count: 3 },
+  { asset_type: 'PE_VC' as const, value: 245_000, weight: 0.1, count: 2 },
+  { asset_type: 'CASH' as const, value: 122_500, weight: 0.05, count: 1 },
 ]
 
 const MOCK_HOLDINGS: Holding[] = [
@@ -64,7 +64,7 @@ const MOCK_HOLDINGS: Holding[] = [
     id: 'h-0',
     asset_name: 'Apple Inc.',
     asset_symbol: 'AAPL',
-    asset_type: 'equity',
+    asset_type: 'EQUITY',
     quantity: 150,
     cost_basis: 21_780,
     current_value: 28_875,
@@ -76,7 +76,7 @@ const MOCK_HOLDINGS: Holding[] = [
     id: 'h-1',
     asset_name: 'Microsoft Corp.',
     asset_symbol: 'MSFT',
-    asset_type: 'equity',
+    asset_type: 'EQUITY',
     quantity: 200,
     cost_basis: 62_100,
     current_value: 85_160,
@@ -88,7 +88,7 @@ const MOCK_HOLDINGS: Holding[] = [
     id: 'h-2',
     asset_name: 'Alphabet Inc.',
     asset_symbol: 'GOOGL',
-    asset_type: 'equity',
+    asset_type: 'EQUITY',
     quantity: 80,
     cost_basis: 206_400,
     current_value: 235_600,
@@ -100,7 +100,7 @@ const MOCK_HOLDINGS: Holding[] = [
     id: 'h-3',
     asset_name: 'Amazon.com',
     asset_symbol: 'AMZN',
-    asset_type: 'equity',
+    asset_type: 'EQUITY',
     quantity: 60,
     cost_basis: 186_000,
     current_value: 202_800,
@@ -112,7 +112,7 @@ const MOCK_HOLDINGS: Holding[] = [
     id: 'h-4',
     asset_name: 'Berkshire Hathaway',
     asset_symbol: 'BRK.B',
-    asset_type: 'equity',
+    asset_type: 'EQUITY',
     quantity: 40,
     cost_basis: 11_600,
     current_value: 13_820,
@@ -303,22 +303,22 @@ function HoldingsSection() {
 }
 
 const CREDIT_TYPES = new Set<TransactionType>([
-  'buy',
-  'deposit',
-  'dividend',
-  'interest',
-  'transfer_in',
+  'BUY',
+  'DEPOSIT',
+  'DIVIDEND',
+  'INTEREST',
+  'TRANSFER_IN',
 ])
 
 function getTypeIconBg(type: TransactionType) {
   if (CREDIT_TYPES.has(type)) return 'bg-positive-subtle'
-  if (type === 'fee' || type === 'tax') return 'bg-surface-muted'
+  if (type === 'FEE' || type === 'TAX') return 'bg-surface-muted'
   return 'bg-negative-subtle'
 }
 
 function getTypeIconColor(type: TransactionType) {
   if (CREDIT_TYPES.has(type)) return 'text-positive'
-  if (type === 'fee' || type === 'tax') return 'text-text-muted'
+  if (type === 'FEE' || type === 'TAX') return 'text-text-muted'
   return 'text-negative'
 }
 
@@ -384,7 +384,7 @@ function RecentTransactionsSection() {
                     {/* Row 1: name + amount */}
                     <div className="flex items-baseline justify-between gap-2">
                       <p className="text-sm font-medium text-text-primary truncate">
-                        {txn.asset_name ?? txn.portfolio_name}
+                        {txn.asset_id ?? txn.portfolio_id ?? '—'}
                       </p>
                       <span
                         className={cn(
@@ -393,7 +393,7 @@ function RecentTransactionsSection() {
                         )}
                       >
                         {isCredit ? '+' : '−'}
-                        {formatCurrency(Math.abs(txn.net_amount), txn.currency)}
+                        {formatCurrency(Math.abs(txn.net_amount ?? 0), txn.currency)}
                       </span>
                     </div>
 
@@ -405,9 +405,9 @@ function RecentTransactionsSection() {
                       >
                         {TRANSACTION_TYPE_LABELS[txn.transaction_type as TransactionType]}
                       </Badge>
-                      {txn.account && (
+                      {txn.account_id && (
                         <span className="text-xs text-text-muted truncate">
-                          {txn.account}
+                          {txn.account_id.slice(0, 8)}
                         </span>
                       )}
                       <span className="text-xs text-text-muted ml-auto flex-shrink-0">

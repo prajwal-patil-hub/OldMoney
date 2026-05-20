@@ -69,8 +69,39 @@ class PortfolioService:
             metadata_=metadata,
             **kwargs,
         )
+        # Auto-create a default brokerage account so transactions can be added immediately
+        from app.modules.portfolios.models import AccountType
+        await self.account_repo.create(
+            portfolio_id=portfolio.id,
+            org_id=org_id,
+            name="Default Account",
+            account_type=AccountType.BROKERAGE,
+            currency=portfolio.base_currency,
+            is_active=True,
+            metadata_={},
+        )
         log.info("portfolio_created", portfolio_id=str(portfolio.id), org_id=str(org_id))
         return _portfolio_to_out(portfolio)
+
+    async def get_or_create_default_account_id(self, portfolio_id: UUID, org_id: UUID) -> UUID:
+        """Return the first active account for a portfolio, creating one if none exist."""
+        accounts = await self.account_repo.list_for_portfolio(portfolio_id, org_id)
+        active = [a for a in accounts if a.is_active]
+        if active:
+            return active[0].id
+        from app.modules.portfolios.models import AccountType
+        portfolio = await self.portfolio_repo.get_by_id(portfolio_id, org_id)
+        currency = portfolio.base_currency if portfolio else "USD"
+        account = await self.account_repo.create(
+            portfolio_id=portfolio_id,
+            org_id=org_id,
+            name="Default Account",
+            account_type=AccountType.BROKERAGE,
+            currency=currency,
+            is_active=True,
+            metadata_={},
+        )
+        return account.id
 
     async def list_portfolios(
         self,

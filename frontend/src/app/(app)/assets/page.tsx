@@ -16,7 +16,7 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { ASSET_TYPE_LABELS, STALE_TIME } from '@/lib/constants'
 import type { AssetType } from '@/types/portfolio'
 
-const ASSET_TYPES: AssetType[] = ['equity', 'fixed_income', 'real_estate', 'private_equity', 'hedge_fund', 'cash', 'crypto', 'commodity', 'alternative']
+const ASSET_TYPES: AssetType[] = ['EQUITY', 'ETF', 'MUTUAL_FUND', 'BOND', 'CRYPTO', 'PE_VC', 'REAL_ESTATE', 'DERIVATIVE', 'CASH', 'ALTERNATIVE']
 
 export default function AssetsPage() {
   const [search, setSearch] = useState('')

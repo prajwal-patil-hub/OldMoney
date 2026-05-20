@@ -34,32 +34,32 @@ export interface TransactionsTableProps {
 
 // Credit types flow money IN, debit types flow money OUT
 const CREDIT_TYPES = new Set<TransactionType>([
-  'buy',
-  'deposit',
-  'dividend',
-  'interest',
-  'transfer_in',
+  'BUY',
+  'DEPOSIT',
+  'DIVIDEND',
+  'INTEREST',
+  'TRANSFER_IN',
 ])
 
 function getTransactionBadgeVariant(
   type: TransactionType
 ): 'success' | 'danger' | 'info' | 'warning' | 'secondary' | 'default' {
   switch (type) {
-    case 'buy':
-    case 'deposit':
-    case 'transfer_in':
+    case 'BUY':
+    case 'DEPOSIT':
+    case 'TRANSFER_IN':
       return 'success'
-    case 'sell':
-    case 'withdrawal':
-    case 'transfer_out':
+    case 'SELL':
+    case 'WITHDRAWAL':
+    case 'TRANSFER_OUT':
       return 'danger'
-    case 'dividend':
-    case 'interest':
-    case 'split':
-    case 'merger':
+    case 'DIVIDEND':
+    case 'INTEREST':
+    case 'SPLIT':
+    case 'MERGER':
       return 'info'
-    case 'fee':
-    case 'tax':
+    case 'FEE':
+    case 'TAX':
       return 'warning'
     default:
       return 'secondary'
@@ -106,13 +106,8 @@ export function TransactionsTable({
         cell: ({ row }) => (
           <div className="min-w-0">
             <p className="font-mono font-medium text-sm text-text-primary truncate leading-tight">
-              {row.original.asset_symbol ?? row.original.asset_name ?? '—'}
+              {row.original.asset_id ?? '—'}
             </p>
-            {row.original.asset_name && row.original.asset_symbol && (
-              <p className="text-xs text-text-muted truncate leading-tight">
-                {row.original.asset_name}
-              </p>
-            )}
           </div>
         ),
       },
@@ -138,8 +133,8 @@ export function TransactionsTable({
         meta: { align: 'right' },
         cell: ({ row }) => (
           <span className="font-mono tabular-nums text-sm text-text-secondary block text-right">
-            {row.original.quantity > 0
-              ? row.original.quantity.toLocaleString('en-US', { maximumFractionDigits: 6 })
+            {(row.original.quantity ?? 0) > 0
+              ? (row.original.quantity ?? 0).toLocaleString('en-US', { maximumFractionDigits: 6 })
               : '—'}
           </span>
         ),
@@ -152,8 +147,8 @@ export function TransactionsTable({
         meta: { align: 'right' },
         cell: ({ row }) => (
           <span className="font-mono tabular-nums text-sm text-text-secondary block text-right">
-            {row.original.price > 0
-              ? formatCurrency(row.original.price, row.original.currency)
+            {(row.original.price ?? 0) > 0
+              ? formatCurrency(row.original.price ?? 0, row.original.currency)
               : '—'}
           </span>
         ),
@@ -166,7 +161,7 @@ export function TransactionsTable({
         meta: { align: 'right' },
         cell: ({ row }) => {
           const isCredit = CREDIT_TYPES.has(row.original.transaction_type)
-          const amount = Math.abs(row.original.net_amount)
+          const amount = Math.abs(row.original.net_amount ?? 0)
           return (
             <span
               className={cn(
@@ -187,7 +182,7 @@ export function TransactionsTable({
         enableSorting: false,
         cell: ({ row }) => (
           <span className="text-xs text-text-muted truncate block">
-            {row.original.account ?? row.original.portfolio_name ?? '—'}
+            {row.original.account_id ? row.original.account_id.slice(0, 8) + '…' : '—'}
           </span>
         ),
       },

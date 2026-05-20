@@ -3,12 +3,9 @@ export interface Portfolio {
   org_id: string
   name: string
   description?: string
-  currency: string
+  base_currency: string
   inception_date?: string
-  benchmark?: string
-  tags: string[]
   created_at: string
-  updated_at: string
   // Computed fields
   total_value?: number
   total_cost?: number
@@ -48,15 +45,16 @@ export interface Holding {
 }
 
 export type AssetType =
-  | 'equity'
-  | 'fixed_income'
-  | 'real_estate'
-  | 'private_equity'
-  | 'hedge_fund'
-  | 'cash'
-  | 'crypto'
-  | 'commodity'
-  | 'alternative'
+  | 'EQUITY'
+  | 'ETF'
+  | 'MUTUAL_FUND'
+  | 'BOND'
+  | 'CRYPTO'
+  | 'PE_VC'
+  | 'REAL_ESTATE'
+  | 'DERIVATIVE'
+  | 'CASH'
+  | 'ALTERNATIVE'
 
 export interface AllocationBreakdown {
   asset_type: AssetType
@@ -68,10 +66,8 @@ export interface AllocationBreakdown {
 export interface CreatePortfolioInput {
   name: string
   description?: string
-  currency: string
+  base_currency: string
   inception_date?: string
-  benchmark?: string
-  tags?: string[]
 }
 
 export interface UpdatePortfolioInput extends Partial<CreatePortfolioInput> {

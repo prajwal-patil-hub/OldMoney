@@ -1,54 +1,50 @@
 export type TransactionType =
-  | 'buy'
-  | 'sell'
-  | 'dividend'
-  | 'interest'
-  | 'deposit'
-  | 'withdrawal'
-  | 'transfer_in'
-  | 'transfer_out'
-  | 'fee'
-  | 'tax'
-  | 'split'
-  | 'merger'
+  | 'BUY'
+  | 'SELL'
+  | 'DIVIDEND'
+  | 'INTEREST'
+  | 'DEPOSIT'
+  | 'WITHDRAWAL'
+  | 'TRANSFER_IN'
+  | 'TRANSFER_OUT'
+  | 'FEE'
+  | 'TAX'
+  | 'SPLIT'
+  | 'MERGER'
 
 export interface Transaction {
   id: string
   org_id: string
+  account_id: string
   portfolio_id: string
-  portfolio_name: string
   asset_id?: string
-  asset_name?: string
-  asset_symbol?: string
   transaction_type: TransactionType
   trade_date: string
-  settle_date?: string
-  quantity: number
-  price: number
-  gross_amount: number
-  commission: number
-  tax: number
-  net_amount: number
+  settlement_date?: string
+  quantity?: number
+  price?: number
+  gross_amount?: number
+  fees: number
+  net_amount?: number
   currency: string
-  account?: string
   notes?: string
   external_id?: string
   created_at: string
-  updated_at: string
 }
 
 export interface CreateTransactionInput {
+  account_id?: string
   portfolio_id: string
   asset_id?: string
   transaction_type: TransactionType
   trade_date: string
-  settle_date?: string
-  quantity: number
-  price: number
-  commission?: number
-  tax?: number
+  settlement_date?: string
+  quantity?: number
+  price?: number
+  gross_amount?: number
+  fees?: number
+  net_amount?: number
   currency: string
-  account?: string
   notes?: string
   external_id?: string
 }

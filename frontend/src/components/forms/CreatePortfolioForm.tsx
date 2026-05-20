@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useCreatePortfolio } from '@/lib/hooks/usePortfolios'
-import { CURRENCIES, BENCHMARKS } from '@/lib/constants'
+import { CURRENCIES } from '@/lib/constants'
 import type { CreatePortfolioInput } from '@/types/portfolio'
 
 interface CreatePortfolioFormProps {
@@ -18,10 +18,8 @@ export function CreatePortfolioForm({ onSuccess, onCancel }: CreatePortfolioForm
   const [formData, setFormData] = useState<Partial<CreatePortfolioInput>>({
     name: '',
     description: '',
-    currency: 'USD',
+    base_currency: 'USD',
     inception_date: '',
-    benchmark: '',
-    tags: [],
   })
   const [errors, setErrors] = useState<Partial<Record<keyof CreatePortfolioInput, string>>>({})
 
@@ -32,8 +30,8 @@ export function CreatePortfolioForm({ onSuccess, onCancel }: CreatePortfolioForm
     if (!formData.name?.trim()) {
       newErrors.name = 'Portfolio name is required'
     }
-    if (!formData.currency) {
-      newErrors.currency = 'Currency is required'
+    if (!formData.base_currency) {
+      newErrors.base_currency = 'Currency is required'
     }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -49,8 +47,8 @@ export function CreatePortfolioForm({ onSuccess, onCancel }: CreatePortfolioForm
         onSuccess?.()
       },
       onError: (error) => {
-        const axiosError = error as { response?: { data?: { detail?: string } } }
-        toast.error(axiosError?.response?.data?.detail ?? 'Failed to create portfolio')
+        const axiosError = error as { response?: { data?: { errors?: Array<{ message: string }> } } }
+        toast.error(axiosError?.response?.data?.errors?.[0]?.message ?? 'Failed to create portfolio')
       },
     })
   }
@@ -95,8 +93,8 @@ export function CreatePortfolioForm({ onSuccess, onCancel }: CreatePortfolioForm
             Base Currency <span className="text-danger">*</span>
           </label>
           <Select
-            value={formData.currency}
-            onValueChange={(value) => setFormData({ ...formData, currency: value })}
+            value={formData.base_currency}
+            onValueChange={(value) => setFormData({ ...formData, base_currency: value })}
           >
             <SelectTrigger id="portfolio-currency">
               <SelectValue placeholder="Select currency" />
@@ -109,8 +107,8 @@ export function CreatePortfolioForm({ onSuccess, onCancel }: CreatePortfolioForm
               ))}
             </SelectContent>
           </Select>
-          {errors.currency && (
-            <p className="text-xs text-danger">{errors.currency}</p>
+          {errors.base_currency && (
+            <p className="text-xs text-danger">{errors.base_currency}</p>
           )}
         </div>
 
@@ -127,28 +125,6 @@ export function CreatePortfolioForm({ onSuccess, onCancel }: CreatePortfolioForm
             max={new Date().toISOString().split('T')[0]}
           />
         </div>
-      </div>
-
-      {/* Benchmark */}
-      <div className="space-y-1.5">
-        <label htmlFor="portfolio-benchmark" className="text-sm font-medium text-text-primary">
-          Benchmark
-        </label>
-        <Select
-          value={formData.benchmark}
-          onValueChange={(value) => setFormData({ ...formData, benchmark: value })}
-        >
-          <SelectTrigger id="portfolio-benchmark">
-            <SelectValue placeholder="Select benchmark (optional)" />
-          </SelectTrigger>
-          <SelectContent>
-            {BENCHMARKS.map((b) => (
-              <SelectItem key={b.value} value={b.value}>
-                {b.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Actions */}

@@ -17,8 +17,8 @@ interface CreateTransactionFormProps {
 }
 
 const TRANSACTION_TYPES: TransactionType[] = [
-  'buy', 'sell', 'dividend', 'interest', 'deposit', 'withdrawal',
-  'transfer_in', 'transfer_out', 'fee', 'tax'
+  'BUY', 'SELL', 'DIVIDEND', 'INTEREST', 'DEPOSIT', 'WITHDRAWAL',
+  'TRANSFER_IN', 'TRANSFER_OUT', 'FEE', 'TAX',
 ]
 
 export function CreateTransactionForm({ portfolioId, onSuccess, onCancel }: CreateTransactionFormProps) {
@@ -26,14 +26,12 @@ export function CreateTransactionForm({ portfolioId, onSuccess, onCancel }: Crea
 
   const [formData, setFormData] = useState<Partial<CreateTransactionInput>>({
     portfolio_id: portfolioId ?? '',
-    transaction_type: 'buy',
+    transaction_type: 'BUY',
     trade_date: today,
-    quantity: 0,
-    price: 0,
-    commission: 0,
-    tax: 0,
+    quantity: undefined,
+    price: undefined,
+    fees: 0,
     currency: 'USD',
-    account: '',
     notes: '',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -47,9 +45,9 @@ export function CreateTransactionForm({ portfolioId, onSuccess, onCancel }: Crea
     if (!formData.portfolio_id) newErrors.portfolio_id = 'Portfolio is required'
     if (!formData.trade_date) newErrors.trade_date = 'Trade date is required'
     if (!formData.transaction_type) newErrors.transaction_type = 'Transaction type is required'
-    if (formData.quantity === undefined || formData.quantity <= 0) {
-      const needsQty = ['buy', 'sell', 'split', 'merger'].includes(formData.transaction_type ?? '')
-      if (needsQty) newErrors.quantity = 'Quantity must be greater than 0'
+    const needsQty = ['BUY', 'SELL', 'SPLIT', 'MERGER'].includes(formData.transaction_type ?? '')
+    if (needsQty && (!formData.quantity || formData.quantity <= 0)) {
+      newErrors.quantity = 'Quantity must be greater than 0'
     }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -65,8 +63,8 @@ export function CreateTransactionForm({ portfolioId, onSuccess, onCancel }: Crea
         onSuccess?.()
       },
       onError: (error) => {
-        const axiosError = error as { response?: { data?: { detail?: string } } }
-        toast.error(axiosError?.response?.data?.detail ?? 'Failed to add transaction')
+        const axiosError = error as { response?: { data?: { errors?: Array<{ message: string }> } } }
+        toast.error(axiosError?.response?.data?.errors?.[0]?.message ?? 'Failed to add transaction')
       },
     })
   }
@@ -164,8 +162,8 @@ export function CreateTransactionForm({ portfolioId, onSuccess, onCancel }: Crea
             min="0"
             step="any"
             placeholder="0"
-            value={formData.quantity || ''}
-            onChange={(e) => updateField('quantity', parseFloat(e.target.value) || 0)}
+            value={formData.quantity ?? ''}
+            onChange={(e) => updateField('quantity', parseFloat(e.target.value) || undefined)}
             error={errors.quantity}
           />
         </div>
@@ -181,8 +179,8 @@ export function CreateTransactionForm({ portfolioId, onSuccess, onCancel }: Crea
             min="0"
             step="any"
             placeholder="0.00"
-            value={formData.price || ''}
-            onChange={(e) => updateField('price', parseFloat(e.target.value) || 0)}
+            value={formData.price ?? ''}
+            onChange={(e) => updateField('price', parseFloat(e.target.value) || undefined)}
           />
         </div>
 
@@ -209,50 +207,19 @@ export function CreateTransactionForm({ portfolioId, onSuccess, onCancel }: Crea
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        {/* Commission */}
-        <div className="space-y-1.5">
-          <label htmlFor="txn-commission" className="text-sm font-medium text-text-primary">
-            Commission
-          </label>
-          <Input
-            id="txn-commission"
-            type="number"
-            min="0"
-            step="any"
-            placeholder="0.00"
-            value={formData.commission || ''}
-            onChange={(e) => updateField('commission', parseFloat(e.target.value) || 0)}
-          />
-        </div>
-
-        {/* Tax */}
-        <div className="space-y-1.5">
-          <label htmlFor="txn-tax" className="text-sm font-medium text-text-primary">
-            Tax
-          </label>
-          <Input
-            id="txn-tax"
-            type="number"
-            min="0"
-            step="any"
-            placeholder="0.00"
-            value={formData.tax || ''}
-            onChange={(e) => updateField('tax', parseFloat(e.target.value) || 0)}
-          />
-        </div>
-      </div>
-
-      {/* Account */}
+      {/* Fees */}
       <div className="space-y-1.5">
-        <label htmlFor="txn-account" className="text-sm font-medium text-text-primary">
-          Account
+        <label htmlFor="txn-fees" className="text-sm font-medium text-text-primary">
+          Fees (commission + taxes)
         </label>
         <Input
-          id="txn-account"
-          placeholder="e.g., Brokerage Account 1"
-          value={formData.account}
-          onChange={(e) => updateField('account', e.target.value)}
+          id="txn-fees"
+          type="number"
+          min="0"
+          step="any"
+          placeholder="0.00"
+          value={formData.fees ?? ''}
+          onChange={(e) => updateField('fees', parseFloat(e.target.value) || 0)}
         />
       </div>
 

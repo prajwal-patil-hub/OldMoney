@@ -42,15 +42,16 @@ const assetTypeBadgeVariant: Record<
   AssetType,
   'default' | 'success' | 'info' | 'warning' | 'secondary' | 'gold'
 > = {
-  equity: 'default',
-  fixed_income: 'info',
-  real_estate: 'warning',
-  private_equity: 'gold',
-  hedge_fund: 'secondary',
-  cash: 'success',
-  crypto: 'secondary',
-  commodity: 'warning',
-  alternative: 'secondary',
+  EQUITY: 'default',
+  ETF: 'info',
+  MUTUAL_FUND: 'info',
+  BOND: 'warning',
+  CRYPTO: 'secondary',
+  PE_VC: 'gold',
+  REAL_ESTATE: 'warning',
+  DERIVATIVE: 'secondary',
+  CASH: 'success',
+  ALTERNATIVE: 'secondary',
 }
 
 function GainColor({

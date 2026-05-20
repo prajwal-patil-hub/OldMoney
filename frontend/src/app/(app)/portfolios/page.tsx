@@ -110,7 +110,7 @@ export default function PortfoliosPage() {
                       )}
                     </div>
                     <Badge variant="secondary" className="flex-shrink-0 text-xs">
-                      {portfolio.currency}
+                      {portfolio.base_currency}
                     </Badge>
                   </div>
                 </CardHeader>
@@ -121,7 +121,7 @@ export default function PortfoliosPage() {
                     <p className="text-xs text-text-muted mb-0.5">Current Value</p>
                     <p className="text-xl font-semibold tabular-nums text-text-primary">
                       {portfolio.total_value
-                        ? formatCurrency(portfolio.total_value, portfolio.currency)
+                        ? formatCurrency(portfolio.total_value, portfolio.base_currency)
                         : '—'}
                     </p>
                   </div>
@@ -137,7 +137,7 @@ export default function PortfoliosPage() {
                         )}
                       >
                         {portfolio.unrealized_gain !== undefined
-                          ? `${isPositive ? '+' : ''}${formatCurrency(portfolio.unrealized_gain, portfolio.currency)}`
+                          ? `${isPositive ? '+' : ''}${formatCurrency(portfolio.unrealized_gain, portfolio.base_currency)}`
                           : '—'}
                       </p>
                     </div>
@@ -156,21 +156,14 @@ export default function PortfoliosPage() {
                     </div>
                   </div>
 
-                  {/* Tags + inception */}
-                  <div className="flex items-center justify-between pt-1 border-t border-border">
-                    <div className="flex flex-wrap gap-1">
-                      {portfolio.tags?.slice(0, 2).map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                    {portfolio.inception_date && (
+                  {/* Inception date */}
+                  {portfolio.inception_date && (
+                    <div className="flex items-center justify-end pt-1 border-t border-border">
                       <span className="text-xs text-text-muted">
                         Since {formatDate(portfolio.inception_date, 'MMM yyyy')}
                       </span>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )

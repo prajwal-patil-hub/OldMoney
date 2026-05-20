@@ -32,16 +32,16 @@ const PAGE_SIZE_OPTIONS = [25, 50, 100] as const
 type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number]
 
 const TRANSACTION_TYPES: TransactionType[] = [
-  'buy',
-  'sell',
-  'dividend',
-  'deposit',
-  'withdrawal',
-  'interest',
-  'transfer_in',
-  'transfer_out',
-  'fee',
-  'tax',
+  'BUY',
+  'SELL',
+  'DIVIDEND',
+  'DEPOSIT',
+  'WITHDRAWAL',
+  'INTEREST',
+  'TRANSFER_IN',
+  'TRANSFER_OUT',
+  'FEE',
+  'TAX',
 ]
 
 // ─── Filter pill ───────────────────────────────────────────────────────────────
@@ -84,13 +84,12 @@ function AddTransactionForm({ onSuccess, onCancel }: AddTransactionFormProps) {
 
   const [formData, setFormData] = useState<Partial<CreateTransactionInput>>({
     portfolio_id: '',
-    transaction_type: 'buy',
+    transaction_type: 'BUY',
     trade_date: today,
     quantity: 0,
     price: 0,
-    commission: 0,
+    fees: 0,
     currency: 'USD',
-    account: '',
     notes: '',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -117,7 +116,7 @@ function AddTransactionForm({ onSuccess, onCancel }: AddTransactionFormProps) {
     if (!formData.portfolio_id) errs.portfolio_id = 'Portfolio is required'
     if (!formData.trade_date) errs.trade_date = 'Trade date is required'
     if (!formData.transaction_type) errs.transaction_type = 'Type is required'
-    const needsQty = ['buy', 'sell', 'split', 'merger'].includes(
+    const needsQty = ['BUY', 'SELL', 'SPLIT', 'MERGER'].includes(
       formData.transaction_type ?? ''
     )
     if (needsQty && (!formData.quantity || formData.quantity <= 0)) {
@@ -136,8 +135,8 @@ function AddTransactionForm({ onSuccess, onCancel }: AddTransactionFormProps) {
         onSuccess()
       },
       onError: (error) => {
-        const axiosError = error as { response?: { data?: { detail?: string } } }
-        toast.error(axiosError?.response?.data?.detail ?? 'Failed to add transaction')
+        const axiosError = error as { response?: { data?: { errors?: Array<{ message: string }> } } }
+        toast.error(axiosError?.response?.data?.errors?.[0]?.message ?? 'Failed to add transaction')
       },
     })
   }
@@ -273,37 +272,21 @@ function AddTransactionForm({ onSuccess, onCancel }: AddTransactionFormProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        {/* Fees */}
-        <div className="space-y-1.5">
-          <label htmlFor="new-txn-commission" className="text-sm font-medium text-text-primary">
-            Fees / Commission
-          </label>
-          <Input
-            id="new-txn-commission"
-            type="number"
-            min="0"
-            step="any"
-            placeholder="0.00"
-            value={formData.commission || ''}
-            onChange={(e) => updateField('commission', parseFloat(e.target.value) || 0)}
-            className="h-8 text-sm font-mono"
-          />
-        </div>
-
-        {/* Account */}
-        <div className="space-y-1.5">
-          <label htmlFor="new-txn-account" className="text-sm font-medium text-text-primary">
-            Account
-          </label>
-          <Input
-            id="new-txn-account"
-            placeholder="e.g., Brokerage"
-            value={formData.account}
-            onChange={(e) => updateField('account', e.target.value)}
-            className="h-8 text-sm"
-          />
-        </div>
+      {/* Fees */}
+      <div className="space-y-1.5">
+        <label htmlFor="new-txn-fees" className="text-sm font-medium text-text-primary">
+          Fees / Commission
+        </label>
+        <Input
+          id="new-txn-fees"
+          type="number"
+          min="0"
+          step="any"
+          placeholder="0.00"
+          value={formData.fees || ''}
+          onChange={(e) => updateField('fees', parseFloat(e.target.value) || 0)}
+          className="h-8 text-sm font-mono"
+        />
       </div>
 
       {/* Notes */}
@@ -397,12 +380,12 @@ export default function TransactionsPage() {
     const rows = transactions.map((t) =>
       [
         formatDate(t.trade_date, 'yyyy-MM-dd'),
-        t.asset_symbol ?? t.asset_name ?? '',
+        t.asset_id ?? '',
         TRANSACTION_TYPE_LABELS[t.transaction_type],
         t.quantity,
         t.price,
         t.net_amount,
-        t.account ?? '',
+        t.account_id ?? '',
       ].join(',')
     )
     const csv = [headers.join(','), ...rows].join('\n')

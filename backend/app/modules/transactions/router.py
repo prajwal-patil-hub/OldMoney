@@ -11,6 +11,7 @@ from app.core.database import get_db
 from app.modules.transactions.models import TransactionType
 from app.modules.transactions.schemas import CreateTransactionRequest, UpdateTransactionRequest
 from app.modules.transactions.service import TransactionService
+from app.modules.portfolios.service import PortfolioService
 from app.shared.deps import get_current_user, get_token_payload
 from app.shared.responses import paginated, success
 
@@ -59,10 +60,17 @@ async def create_transaction(
 ):
     org_id = _get_org_id(request)
     svc = TransactionService(db)
+
+    # Resolve account_id: if not provided, use the portfolio's first account
+    account_id = body.account_id
+    if account_id is None:
+        pf_svc = PortfolioService(db)
+        account_id = await pf_svc.get_or_create_default_account_id(body.portfolio_id, org_id)
+
     tx = await svc.create_transaction(
         org_id=org_id,
         user_id=current_user.id,
-        account_id=body.account_id,
+        account_id=account_id,
         portfolio_id=body.portfolio_id,
         asset_id=body.asset_id,
         transaction_type=body.transaction_type,

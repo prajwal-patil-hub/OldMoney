@@ -131,7 +131,7 @@ export function CommandPalette() {
                     >
                       <Briefcase className="size-4 text-text-muted" aria-hidden="true" />
                       <span className="flex-1 truncate">{portfolio.name}</span>
-                      <span className="text-xs text-text-muted">{portfolio.currency}</span>
+                      <span className="text-xs text-text-muted">{portfolio.base_currency}</span>
                     </Command.Item>
                   ))}
                 </Command.Group>

@@ -10,7 +10,7 @@ from app.modules.transactions.models import TransactionType
 
 
 class CreateTransactionRequest(BaseModel):
-    account_id: UUID
+    account_id: UUID | None = None  # auto-resolved from portfolio's first account if omitted
     portfolio_id: UUID
     asset_id: UUID | None = None
     transaction_type: TransactionType

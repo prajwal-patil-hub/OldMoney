@@ -89,19 +89,12 @@ export default function PortfolioDetailPage() {
         }
       />
 
-      {/* Tags */}
-      {portfolio.tags?.length > 0 && (
+      {/* Inception date */}
+      {portfolio.inception_date && (
         <div className="flex flex-wrap gap-2 -mt-2">
-          {portfolio.tags.map((tag) => (
-            <Badge key={tag} variant="outline">
-              {tag}
-            </Badge>
-          ))}
-          {portfolio.inception_date && (
-            <Badge variant="secondary">
-              Since {formatDate(portfolio.inception_date, 'MMM yyyy')}
-            </Badge>
-          )}
+          <Badge variant="secondary">
+            Since {formatDate(portfolio.inception_date, 'MMM yyyy')}
+          </Badge>
         </div>
       )}
 
@@ -109,24 +102,24 @@ export default function PortfolioDetailPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <MetricCard
           label="Current Value"
-          value={formatCurrency(portfolio.total_value ?? 0, portfolio.currency)}
+          value={formatCurrency(portfolio.total_value ?? 0, portfolio.base_currency)}
           icon={DollarSign}
         />
         <MetricCard
           label="Cost Basis"
-          value={formatCurrency(portfolio.total_cost ?? 0, portfolio.currency)}
+          value={formatCurrency(portfolio.total_cost ?? 0, portfolio.base_currency)}
           icon={Scale}
         />
         <MetricCard
           label="Unrealized G/L"
-          value={`${isPositive ? '+' : ''}${formatCurrency(portfolio.unrealized_gain ?? 0, portfolio.currency)}`}
+          value={`${isPositive ? '+' : ''}${formatCurrency(portfolio.unrealized_gain ?? 0, portfolio.base_currency)}`}
           change={portfolio.unrealized_gain_pct}
           icon={TrendingUp}
           valueClassName={isPositive ? 'text-success' : 'text-danger'}
         />
         <MetricCard
           label="Day Change"
-          value={`${(portfolio.day_change ?? 0) >= 0 ? '+' : ''}${formatCurrency(portfolio.day_change ?? 0, portfolio.currency)}`}
+          value={`${(portfolio.day_change ?? 0) >= 0 ? '+' : ''}${formatCurrency(portfolio.day_change ?? 0, portfolio.base_currency)}`}
           change={portfolio.day_change_pct}
           changeLabel="today"
           icon={Percent}
@@ -154,7 +147,7 @@ export default function PortfolioDetailPage() {
                     data={chartData}
                     loading={loadingPerf}
                     height={250}
-                    currency={portfolio.currency}
+                    currency={portfolio.base_currency}
                   />
                 </CardContent>
               </Card>
@@ -169,7 +162,7 @@ export default function PortfolioDetailPage() {
                     data={allocation ?? []}
                     loading={loadingAllocation}
                     height={250}
-                    currency={portfolio.currency}
+                    currency={portfolio.base_currency}
                     showLegend={false}
                   />
                 </CardContent>
@@ -199,7 +192,7 @@ export default function PortfolioDetailPage() {
                 data={chartData}
                 loading={loadingPerf}
                 height={400}
-                currency={portfolio.currency}
+                currency={portfolio.base_currency}
               />
             </CardContent>
           </Card>
