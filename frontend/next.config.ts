@@ -38,7 +38,7 @@ const nextConfig: NextConfig = {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), payment=()',
           },
-          // CSP — allow inline styles (Next.js requires it), no unsafe-eval
+          // CSP — allow inline styles and eval (required by Next.js webpack dev HMR)
           {
             key: 'Content-Security-Policy',
             value: [
