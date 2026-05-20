@@ -4,7 +4,9 @@ import type { TransactionType } from '@/types/transaction'
 export const APP_NAME = 'OldMoney'
 export const APP_TAGLINE = 'Wealth Intelligence, Refined'
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+// Empty string: all API calls go to /api/v1/... which Next.js proxies to
+// http://localhost:8000/api/v1/... — the browser never makes a cross-origin request.
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 export const ASSET_TYPE_LABELS: Record<AssetType, string> = {
   equity: 'Equity',
