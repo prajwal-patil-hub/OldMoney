@@ -75,6 +75,11 @@ api.interceptors.response.use(
       originalRequest._retry = true
       const store = getStore()
 
+      // Demo mode: skip refresh / redirect — just surface the error
+      if (store?.refreshToken?.startsWith('demo-')) {
+        return Promise.reject(error)
+      }
+
       if (!store?.refreshToken) {
         redirectToLogin()
         return Promise.reject(error)

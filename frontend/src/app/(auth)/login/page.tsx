@@ -62,6 +62,29 @@ export default function LoginPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({})
 
+  function handleDemoLogin() {
+    setAuth({
+      access_token: 'demo-token-mock',
+      refresh_token: 'demo-refresh-mock',
+      token_type: 'bearer',
+      user: {
+        id: 'demo-user-id',
+        email: 'demo@oldmoney.app',
+        full_name: 'Demo User',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      org: {
+        id: 'demo-org-id',
+        name: 'Demo Organization',
+        slug: 'demo-org',
+        plan: 'free',
+        created_at: new Date().toISOString(),
+      },
+    })
+    router.push('/dashboard')
+  }
+
   function validate(): boolean {
     const next: typeof fieldErrors = {}
     if (!email.trim()) {
@@ -266,6 +289,22 @@ export default function LoginPage() {
           disabled={isLoading}
         >
           Sign in
+        </Button>
+
+        {/* Demo mode */}
+        <div className="relative flex items-center gap-3 py-1">
+          <div className="flex-1 h-px bg-border" />
+          <span className="text-xs text-text-muted">or</span>
+          <div className="flex-1 h-px bg-border" />
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={handleDemoLogin}
+          disabled={isLoading}
+        >
+          Continue as Demo
         </Button>
       </form>
 
