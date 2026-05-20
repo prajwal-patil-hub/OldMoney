@@ -13,16 +13,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Proxy all /api/** requests to the FastAPI backend so the browser never
-  // makes cross-origin requests and CORS is a non-issue in development.
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'http://localhost:8000/api/:path*',
-      },
-    ]
-  },
   async headers() {
     return [
       {
