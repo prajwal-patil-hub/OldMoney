@@ -112,9 +112,17 @@ app.add_exception_handler(DomainError, domain_error_handler)
 app.add_exception_handler(HTTPException, http_exception_handler)
 app.add_exception_handler(Exception, unhandled_exception_handler)
 
-# Middleware (order matters: last added = first executed)
-# Execution order on request:  SecurityHeaders → RequestID → BodySizeLimit → AuditLog → CORS → route
-# Execution order on response: route → CORS → AuditLog → BodySizeLimit → RequestID → SecurityHeaders
+# Middleware (order matters: last added = first executed / outermost)
+# Execution order on request:  CORS → SecurityHeaders → RequestID → BodySizeLimit → AuditLog → route
+# Execution order on response: route → AuditLog → BodySizeLimit → RequestID → SecurityHeaders → CORS
+# CORS must be outermost so it handles OPTIONS preflight before any other middleware runs
+app.add_middleware(AuditLogMiddleware)
+app.add_middleware(
+    BodySizeLimitMiddleware,
+    max_bytes=settings.MAX_JSON_BODY_SIZE_MB * 1024 * 1024,
+)
+app.add_middleware(RequestIDMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -123,13 +131,6 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["X-Request-ID"],
 )
-app.add_middleware(AuditLogMiddleware)
-app.add_middleware(
-    BodySizeLimitMiddleware,
-    max_bytes=settings.MAX_JSON_BODY_SIZE_MB * 1024 * 1024,
-)
-app.add_middleware(RequestIDMiddleware)
-app.add_middleware(SecurityHeadersMiddleware)
 
 # Register routers
 from app.modules.auth.router import router as auth_router
