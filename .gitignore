@@ -30,10 +30,10 @@ dist/
 .env.*.local
 
 # Database / Data
-data/*.db
-data/*.db-shm
-data/*.db-wal
-data/documents/
+**/data/*.db
+**/data/*.db-shm
+**/data/*.db-wal
+**/data/documents/
 
 # OS
 .DS_Store
