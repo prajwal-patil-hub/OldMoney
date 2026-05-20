@@ -6,7 +6,8 @@ export const APP_TAGLINE = 'Wealth Intelligence, Refined'
 
 // Empty string: all API calls go to /api/v1/... which Next.js proxies to
 // http://localhost:8000/api/v1/... — the browser never makes a cross-origin request.
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || ''
+// Do NOT set this to an absolute URL; keep it empty so the Next.js rewrite handles routing.
+export const API_BASE_URL = ''
 
 export const ASSET_TYPE_LABELS: Record<AssetType, string> = {
   equity: 'Equity',
