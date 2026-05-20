@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss'
+import tailwindcssAnimate from 'tailwindcss-animate'
 
 /**
  * OldMoney Tailwind Config
@@ -253,7 +254,7 @@ const config: Config = {
     },
   },
   plugins: [
-    require('tailwindcss-animate'),
+    tailwindcssAnimate,
     // Utility plugin: .tabular-nums for financial data
     ({ addUtilities }: { addUtilities: (utils: Record<string, Record<string, string>>) => void }) => {
       addUtilities({
