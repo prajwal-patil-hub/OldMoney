@@ -11,7 +11,7 @@ import { useAuthStore } from '@/store/auth.store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-import type { AuthResponse } from '@/types/api'
+import type { LoginApiResponse, OrgApiResponse } from '@/types/api'
 
 interface ApiErrorDetail {
   detail?: string
@@ -83,11 +83,68 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      const res = await api.post<AuthResponse>('/auth/login', {
+      // 1. Login — get bare user token (no org context yet)
+      const loginRes = await api.post<LoginApiResponse>('/auth/login', {
         email: email.trim(),
         password,
       })
-      setAuth(res.data)
+      const loginData = loginRes.data as LoginApiResponse
+      const tempToken = loginData.access_token
+
+      // 2. List orgs this user belongs to
+      const orgsRes = await api.get<OrgApiResponse[]>('/orgs', {
+        headers: { Authorization: `Bearer ${tempToken}` },
+      })
+      const orgs = (orgsRes.data as OrgApiResponse[]) || []
+
+      if (orgs.length === 0) {
+        // Registered but never created an org — send back to finish setup
+        setAuth({
+          access_token: tempToken,
+          refresh_token: loginData.refresh_token,
+          token_type: 'bearer',
+          user: {
+            id: loginData.user.id,
+            email: loginData.user.email,
+            full_name: loginData.user.full_name,
+            created_at: loginData.user.created_at,
+            updated_at: loginData.user.created_at,
+          },
+        })
+        router.push('/register')
+        return
+      }
+
+      // 3. Switch into org context — get org-scoped access token
+      const firstOrg = orgs[0]
+      const switchRes = await api.post<{ access_token: string }>(
+        `/orgs/${firstOrg.id}/switch`,
+        {},
+        { headers: { Authorization: `Bearer ${tempToken}` } }
+      )
+      const orgToken = (switchRes.data as { access_token: string }).access_token
+
+      // 4. Set full auth state
+      setAuth({
+        access_token: orgToken,
+        refresh_token: loginData.refresh_token,
+        token_type: 'bearer',
+        user: {
+          id: loginData.user.id,
+          email: loginData.user.email,
+          full_name: loginData.user.full_name,
+          created_at: loginData.user.created_at,
+          updated_at: loginData.user.created_at,
+        },
+        org: {
+          id: firstOrg.id,
+          name: firstOrg.name,
+          slug: firstOrg.slug,
+          plan: (firstOrg.plan as 'free' | 'pro' | 'enterprise') || 'free',
+          created_at: firstOrg.created_at,
+        },
+      })
+
       router.push('/dashboard')
     } catch (err) {
       const { message } = getErrorMessage(err)
@@ -101,7 +158,7 @@ export default function LoginPage() {
     <div>
       {/* Heading */}
       <h1 className="font-display text-2xl font-bold text-text-primary tracking-tight">
-        Welcome back
+        Sign in to your account
       </h1>
       <p className="text-sm text-text-muted mt-1">Sign in to your wealth platform</p>
 

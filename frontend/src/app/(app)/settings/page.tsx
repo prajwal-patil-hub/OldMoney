@@ -85,14 +85,16 @@ function SectionHeading({
 
 function OrganizationTab() {
   const activeOrg = useAuthStore((s) => s.activeOrg)
+  const activeOrgId = useAuthStore((s) => s.activeOrgId)
   const [orgName, setOrgName] = useState(activeOrg?.name ?? '')
   const [displayName, setDisplayName] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
   async function handleSave() {
+    if (!activeOrgId) return
     setIsSaving(true)
     try {
-      await orgApi.update({ name: orgName })
+      await orgApi.update(activeOrgId, { name: orgName })
       toast.success('Organization settings updated')
     } catch {
       toast.error('Failed to update organization settings')
@@ -172,13 +174,13 @@ function MembersTab() {
 
   const { data: members, isLoading } = useQuery({
     queryKey: ['org', activeOrgId, 'members'],
-    queryFn: () => orgApi.members().then((r) => r.data),
+    queryFn: () => orgApi.members(activeOrgId!).then((r) => r.data),
     staleTime: STALE_TIME.MEDIUM,
     enabled: !!activeOrgId,
   })
 
   const removeMutation = useMutation({
-    mutationFn: (userId: string) => orgApi.removeMember(userId),
+    mutationFn: (userId: string) => orgApi.removeMember(activeOrgId!, userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['org', activeOrgId, 'members'] })
       toast.success('Member removed')
@@ -188,7 +190,7 @@ function MembersTab() {
 
   const roleUpdateMutation = useMutation({
     mutationFn: ({ userId, role }: { userId: string; role: Role }) =>
-      orgApi.updateMemberRole(userId, role),
+      orgApi.updateMemberRole(activeOrgId!, userId, role),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['org', activeOrgId, 'members'] })
     },
@@ -199,7 +201,7 @@ function MembersTab() {
     if (!inviteEmail.trim()) return
     setIsInviting(true)
     try {
-      await orgApi.inviteMember(inviteEmail.trim(), inviteRole)
+      await orgApi.inviteMember(activeOrgId!, inviteEmail.trim(), inviteRole)
       toast.success(`Invitation sent to ${inviteEmail}`)
       setInviteOpen(false)
       setInviteEmail('')

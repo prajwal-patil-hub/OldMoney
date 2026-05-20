@@ -10,7 +10,8 @@ import { useAuthStore } from '@/store/auth.store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn, slugify } from '@/lib/utils'
-import type { AuthResponse } from '@/types/api'
+import type { AxiosError } from 'axios'
+import type { LoginApiResponse, OrgApiResponse } from '@/types/api'
 
 // ─── Password strength ────────────────────────────────────────────────────────
 
@@ -142,25 +143,63 @@ export default function RegisterPage() {
     setStep2Errors({})
 
     try {
-      // Register user
-      const regRes = await api.post<AuthResponse>('/auth/register', {
+      // 1. Create user account (returns no tokens)
+      await api.post('/auth/register', {
         email: step1.email.trim(),
         password: step1.password,
         full_name: step1.fullName.trim(),
       })
-      const { access_token } = regRes.data
-      setAuth(regRes.data)
 
-      // Create org
-      await api.post(
+      // 2. Login to get tokens
+      const loginRes = await api.post<LoginApiResponse>('/auth/login', {
+        email: step1.email.trim(),
+        password: step1.password,
+      })
+      const loginData = loginRes.data as LoginApiResponse
+      const tempToken = loginData.access_token
+
+      // 3. Create organization using the bare user token
+      const orgRes = await api.post<OrgApiResponse>(
         '/orgs',
         { name: step2.orgName.trim(), slug: step2.slug },
-        { headers: { Authorization: `Bearer ${access_token}` } }
+        { headers: { Authorization: `Bearer ${tempToken}` } }
       )
+      const org = orgRes.data as OrgApiResponse
+
+      // 4. Switch into org context — get an org-scoped access token
+      const switchRes = await api.post<{ access_token: string }>(
+        `/orgs/${org.id}/switch`,
+        {},
+        { headers: { Authorization: `Bearer ${tempToken}` } }
+      )
+      const orgToken = (switchRes.data as { access_token: string }).access_token
+
+      // 5. Populate the auth store with the complete session
+      setAuth({
+        access_token: orgToken,
+        refresh_token: loginData.refresh_token,
+        token_type: 'bearer',
+        user: {
+          id: loginData.user.id,
+          email: loginData.user.email,
+          full_name: loginData.user.full_name,
+          created_at: loginData.user.created_at,
+          updated_at: loginData.user.created_at,
+        },
+        org: {
+          id: org.id,
+          name: org.name,
+          slug: org.slug,
+          plan: (org.plan as 'free' | 'pro' | 'enterprise') || 'free',
+          created_at: org.created_at,
+        },
+      })
 
       router.push('/dashboard')
-    } catch {
-      setStep2Errors({ form: 'Registration failed. Please try again.' })
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ errors?: Array<{ message: string }> }>
+      const backendMsg = axiosErr?.response?.data?.errors?.[0]?.message
+      setStep2Errors({ form: backendMsg || 'Registration failed. Please try again.' })
     } finally {
       setIsLoading(false)
     }

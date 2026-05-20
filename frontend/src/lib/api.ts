@@ -7,6 +7,7 @@ let getStore: () => {
   refreshToken: string | null
   setAuth: (data: import('@/types/api').AuthResponse) => void
   clearAuth: () => void
+  updateTokens: (accessToken: string, refreshToken?: string) => void
 } | null = () => null
 
 export function initApiStore(
@@ -15,6 +16,7 @@ export function initApiStore(
     refreshToken: string | null
     setAuth: (data: import('@/types/api').AuthResponse) => void
     clearAuth: () => void
+    updateTokens: (accessToken: string, refreshToken?: string) => void
   }
 ) {
   getStore = getter
@@ -26,6 +28,19 @@ function redirectToLogin() {
   if (typeof window !== 'undefined') {
     window.location.href = '/login'
   }
+}
+
+// Unwrap the backend envelope { data: ..., errors: [], meta: ... } → inner data
+function unwrapEnvelope(body: unknown): unknown {
+  if (
+    body !== null &&
+    typeof body === 'object' &&
+    'data' in (body as object) &&
+    'errors' in (body as object)
+  ) {
+    return (body as Record<string, unknown>)['data']
+  }
+  return body
 }
 
 const api: AxiosInstance = axios.create({
@@ -48,7 +63,11 @@ api.interceptors.request.use(
 )
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Unwrap backend envelope on every successful response
+    response.data = unwrapEnvelope(response.data)
+    return response
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
 
@@ -57,19 +76,19 @@ api.interceptors.response.use(
       const store = getStore()
 
       if (!store?.refreshToken) {
-        // No in-memory refresh token — clear auth and redirect to login immediately
         redirectToLogin()
         return Promise.reject(error)
       }
 
       try {
-        const response = await axios.post<import('@/types/api').AuthResponse>(
+        // Use raw axios (bypasses our interceptors) then unwrap manually
+        const response = await axios.post(
           `${API_BASE_URL}/api/v1/auth/refresh`,
           { refresh_token: store.refreshToken }
         )
-        const { access_token, refresh_token } = response.data
-        store.setAuth({ ...response.data, access_token, refresh_token })
-        originalRequest.headers.Authorization = `Bearer ${access_token}`
+        const tokenData = unwrapEnvelope(response.data) as { access_token: string; refresh_token?: string }
+        store.updateTokens(tokenData.access_token, tokenData.refresh_token)
+        originalRequest.headers.Authorization = `Bearer ${tokenData.access_token}`
         return api(originalRequest)
       } catch {
         redirectToLogin()
@@ -84,16 +103,11 @@ api.interceptors.response.use(
 // Auth endpoints
 export const authApi = {
   login: (email: string, password: string) =>
-    api.post<import('@/types/api').AuthResponse>('/auth/login', { email, password }),
-  register: (data: {
-    email: string
-    password: string
-    full_name: string
-    org_name: string
-    org_slug: string
-  }) => api.post<import('@/types/api').AuthResponse>('/auth/register', data),
+    api.post<import('@/types/api').LoginApiResponse>('/auth/login', { email, password }),
+  register: (data: { email: string; password: string; full_name: string }) =>
+    api.post<{ id: string; email: string; full_name: string }>('/auth/register', data),
   refresh: (refreshToken: string) =>
-    api.post<import('@/types/api').AuthResponse>('/auth/refresh', { refresh_token: refreshToken }),
+    api.post<{ access_token: string; refresh_token: string; token_type: string }>('/auth/refresh', { refresh_token: refreshToken }),
   logout: () => api.post('/auth/logout'),
   me: () => api.get<import('@/types/api').User>('/auth/me'),
 }
@@ -219,15 +233,18 @@ export const aiApi = {
 
 // Org endpoints
 export const orgApi = {
-  get: () => api.get<import('@/types/api').Organization>('/org'),
-  update: (data: Partial<import('@/types/api').Organization>) =>
-    api.patch<import('@/types/api').Organization>('/org', data),
-  members: () => api.get<import('@/types/api').OrgMember[]>('/org/members'),
-  inviteMember: (email: string, role: import('@/types/api').Role) =>
-    api.post('/org/members/invite', { email, role }),
-  removeMember: (userId: string) => api.delete(`/org/members/${userId}`),
-  updateMemberRole: (userId: string, role: import('@/types/api').Role) =>
-    api.patch(`/org/members/${userId}`, { role }),
+  list: () => api.get<import('@/types/api').OrgApiResponse[]>('/orgs'),
+  get: (id: string) => api.get<import('@/types/api').OrgApiResponse>(`/orgs/${id}`),
+  update: (id: string, data: Partial<import('@/types/api').OrgApiResponse>) =>
+    api.patch<import('@/types/api').OrgApiResponse>(`/orgs/${id}`, data),
+  switch: (id: string) =>
+    api.post<{ access_token: string; token_type: string }>(`/orgs/${id}/switch`),
+  members: (orgId: string) => api.get<import('@/types/api').OrgMember[]>(`/orgs/${orgId}/members`),
+  inviteMember: (orgId: string, email: string, role: import('@/types/api').Role) =>
+    api.post(`/orgs/${orgId}/members`, { email, role }),
+  removeMember: (orgId: string, userId: string) => api.delete(`/orgs/${orgId}/members/${userId}`),
+  updateMemberRole: (orgId: string, userId: string, role: import('@/types/api').Role) =>
+    api.patch(`/orgs/${orgId}/members/${userId}`, { role }),
 }
 
 export default api

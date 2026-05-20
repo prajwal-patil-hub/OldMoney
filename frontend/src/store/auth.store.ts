@@ -2,10 +2,6 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { User, Organization, AuthResponse, Role } from '@/types/api'
 
-// ─── sessionStorage-backed access token ───────────────────────────────────────
-// Lives only in the current tab's JS heap + sessionStorage.
-// sessionStorage is cleared on tab/browser close, preventing persistent XSS theft.
-
 const SESSION_TOKEN_KEY = 'om_at'
 
 const _getStoredToken = (): string | null => {
@@ -19,24 +15,17 @@ const _setStoredToken = (token: string | null) => {
   else sessionStorage.removeItem(SESSION_TOKEN_KEY)
 }
 
-// ─── Store interface ───────────────────────────────────────────────────────────
-
 interface AuthState {
-  // Non-sensitive identity data — persisted in localStorage
   user: User | null
   activeOrgId: string | null
   activeOrgRole: Role | null
   activeOrg: Organization | null
-
-  // accessToken is NOT kept in Zustand state — derived from sessionStorage on every read
   readonly accessToken: string | null
-
-  // refreshToken is held only in memory (not persisted). It survives page refreshes
-  // only within the same tab session; closing the tab/browser clears it.
   refreshToken: string | null
 
   setAuth: (data: AuthResponse) => void
   clearAuth: () => void
+  updateTokens: (accessToken: string, refreshToken?: string) => void
   setActiveOrg: (orgId: string, role: Role, org?: Organization) => void
   updateUser: (user: Partial<User>) => void
 }
@@ -49,23 +38,19 @@ export const useAuthStore = create<AuthState>()(
       activeOrgRole: null,
       activeOrg: null,
 
-      // Derived getter — reads from sessionStorage every time it's accessed
       get accessToken(): string | null {
         return _getStoredToken()
       },
 
-      // In-memory only; not in partialize → never written to localStorage
       refreshToken: null,
 
       setAuth: (data: AuthResponse) => {
-        // Write access token to sessionStorage (not localStorage, not Zustand state)
         _setStoredToken(data.access_token)
         set({
-          user: data.user,
-          activeOrgId: data.org.id,
-          activeOrg: data.org,
-          activeOrgRole: 'owner', // default; would be returned by real API
-          // Keep refresh token in memory only (not persisted via partialize)
+          user: data.user ?? null,
+          activeOrgId: data.org?.id ?? null,
+          activeOrg: data.org ?? null,
+          activeOrgRole: 'owner',
           refreshToken: data.refresh_token ?? null,
         })
       },
@@ -79,6 +64,14 @@ export const useAuthStore = create<AuthState>()(
           activeOrg: null,
           refreshToken: null,
         })
+      },
+
+      // Used by the token refresh interceptor — only updates tokens, preserves user/org
+      updateTokens: (accessToken: string, refreshToken?: string) => {
+        _setStoredToken(accessToken)
+        if (refreshToken) {
+          set({ refreshToken })
+        }
       },
 
       setActiveOrg: (orgId: string, role: Role, org?: Organization) => {
@@ -106,9 +99,6 @@ export const useAuthStore = create<AuthState>()(
               removeItem: () => {},
             }
       ),
-      // Only persist non-sensitive identity data.
-      // accessToken → sessionStorage (handled separately above)
-      // refreshToken → memory-only (intentionally excluded)
       partialize: (state) => ({
         user: state.user,
         activeOrgId: state.activeOrgId,

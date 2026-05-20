@@ -17,6 +17,7 @@ function ApiStoreInitializer() {
         refreshToken: useAuthStore.getState().refreshToken,
         setAuth: useAuthStore.getState().setAuth,
         clearAuth: useAuthStore.getState().clearAuth,
+        updateTokens: useAuthStore.getState().updateTokens,
       }))
     }
   }, [store])
