@@ -150,6 +150,21 @@ class AIService:
         convs = result.scalars().all()
         return [AIConversationOut.model_validate(c) for c in convs]
 
+    async def delete_conversation(self, conv_id: UUID) -> None:
+        result = await self.db.execute(
+            select(AIConversation).where(
+                AIConversation.id == conv_id,
+                AIConversation.org_id == self.org_id,
+                AIConversation.deleted_at.is_(None),
+            )
+        )
+        conv = result.scalar_one_or_none()
+        if not conv:
+            raise NotFoundError("Conversation not found")
+        from datetime import datetime, timezone
+        conv.deleted_at = datetime.now(timezone.utc)
+        await self.db.commit()
+
     async def get_conversation(self, conv_id: UUID) -> AIConversationDetail:
         result = await self.db.execute(
             select(AIConversation)

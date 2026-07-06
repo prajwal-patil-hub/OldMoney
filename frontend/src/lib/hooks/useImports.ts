@@ -60,10 +60,10 @@ export function useImportPreview() {
       formData.append('date_format', date_format)
       formData.append('skip_rows', String(skip_rows))
 
-      const res = await api.post<{ data: ImportPreviewResponse }>('/imports/preview', formData, {
+      const res = await api.post<ImportPreviewResponse>('/imports/preview', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
-      return res.data.data
+      return res.data
     },
   })
 }
@@ -77,10 +77,10 @@ export function useImportCommit() {
       formData.append('date_format', date_format)
       formData.append('skip_rows', String(skip_rows))
 
-      const res = await api.post<{ data: ImportCommitResponse }>('/imports/commit', formData, {
+      const res = await api.post<ImportCommitResponse>('/imports/commit', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
-      return res.data.data
+      return res.data
     },
   })
 }
@@ -89,8 +89,8 @@ export function useImportTemplates() {
   return useQuery({
     queryKey: IMPORTS_QUERY_KEYS.templates,
     queryFn: async () => {
-      const res = await api.get<{ data: ImportTemplate[] }>('/imports/templates')
-      return res.data.data
+      const res = await api.get<ImportTemplate[]>('/imports/templates')
+      return res.data
     },
     staleTime: STALE_TIME.LONG,
   })

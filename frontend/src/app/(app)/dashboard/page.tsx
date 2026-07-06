@@ -31,97 +31,6 @@ import { useRecentTransactions } from '@/lib/hooks/useTransactions'
 import type { Holding as ApiHolding } from '@/types/portfolio'
 import type { Transaction, TransactionType } from '@/types/transaction'
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-function generateMockPerformance(days: number) {
-  const data = []
-  const baseValue = 2_450_000
-  let current = baseValue
-  const now = new Date()
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(now)
-    date.setDate(date.getDate() - i)
-    const change = (Math.random() - 0.45) * 0.008 * current
-    current += change
-    data.push({
-      date: date.toISOString().split('T')[0]!,
-      value: Math.round(current),
-    })
-  }
-  return data
-}
-
-const MOCK_ALLOCATION = [
-  { asset_type: 'EQUITY' as const, value: 1_225_000, weight: 0.5, count: 12 },
-  { asset_type: 'BOND' as const, value: 490_000, weight: 0.2, count: 5 },
-  { asset_type: 'REAL_ESTATE' as const, value: 367_500, weight: 0.15, count: 3 },
-  { asset_type: 'PE_VC' as const, value: 245_000, weight: 0.1, count: 2 },
-  { asset_type: 'CASH' as const, value: 122_500, weight: 0.05, count: 1 },
-]
-
-const MOCK_HOLDINGS: Holding[] = [
-  {
-    id: 'h-0',
-    asset_name: 'Apple Inc.',
-    asset_symbol: 'AAPL',
-    asset_type: 'EQUITY',
-    quantity: 150,
-    cost_basis: 21_780,
-    current_value: 28_875,
-    unrealized_gain: 7_095,
-    unrealized_gain_pct: 32.57,
-    weight: 0.25,
-  },
-  {
-    id: 'h-1',
-    asset_name: 'Microsoft Corp.',
-    asset_symbol: 'MSFT',
-    asset_type: 'EQUITY',
-    quantity: 200,
-    cost_basis: 62_100,
-    current_value: 85_160,
-    unrealized_gain: 23_060,
-    unrealized_gain_pct: 37.13,
-    weight: 0.20,
-  },
-  {
-    id: 'h-2',
-    asset_name: 'Alphabet Inc.',
-    asset_symbol: 'GOOGL',
-    asset_type: 'EQUITY',
-    quantity: 80,
-    cost_basis: 206_400,
-    current_value: 235_600,
-    unrealized_gain: 29_200,
-    unrealized_gain_pct: 14.15,
-    weight: 0.18,
-  },
-  {
-    id: 'h-3',
-    asset_name: 'Amazon.com',
-    asset_symbol: 'AMZN',
-    asset_type: 'EQUITY',
-    quantity: 60,
-    cost_basis: 186_000,
-    current_value: 202_800,
-    unrealized_gain: 16_800,
-    unrealized_gain_pct: 9.03,
-    weight: 0.15,
-  },
-  {
-    id: 'h-4',
-    asset_name: 'Berkshire Hathaway',
-    asset_symbol: 'BRK.B',
-    asset_type: 'EQUITY',
-    quantity: 40,
-    cost_basis: 11_600,
-    current_value: 13_820,
-    unrealized_gain: 2_220,
-    unrealized_gain_pct: 19.14,
-    weight: 0.12,
-  },
-]
-
 // ─── Grain options ─────────────────────────────────────────────────────────────
 
 type Grain = '1W' | '1M' | '3M' | 'YTD' | '1Y'
@@ -140,13 +49,13 @@ function MetricCards() {
   const { data: metrics, isLoading } = useDashboardMetrics()
 
   const displayMetrics = metrics ?? {
-    total_aum: 2_450_000,
-    total_aum_change: 3.24,
-    today_pnl: 12_850,
-    today_pnl_pct: 0.53,
-    ytd_return: 187_200,
-    ytd_return_pct: 8.27,
-    portfolio_count: 4,
+    total_aum: 0,
+    total_aum_change: 0,
+    today_pnl: 0,
+    today_pnl_pct: 0,
+    ytd_return: 0,
+    ytd_return_pct: 0,
+    portfolio_count: 0,
   }
 
   return (
@@ -200,8 +109,7 @@ function PerformanceSection() {
   const activeDays = GRAIN_OPTIONS.find((g) => g.value === activeGrain)?.days ?? 30
 
   const { data, isLoading } = useDashboardPerformance(activeDays)
-  const chartData =
-    data?.length ? data : generateMockPerformance(activeDays)
+  const chartData = data ?? []
 
   return (
     <Card>
@@ -248,7 +156,7 @@ function PerformanceSection() {
 
 function AllocationSection() {
   const { data, isLoading } = useDashboardAllocation()
-  const chartData = data?.length ? data : MOCK_ALLOCATION
+  const chartData = data ?? []
 
   return (
     <Card>
@@ -271,21 +179,18 @@ function AllocationSection() {
 function HoldingsSection() {
   const { data: rawHoldings, isLoading } = useTopHoldings(10)
 
-  // Map API Holding → HoldingsTable Holding (both shapes are compatible here)
-  const holdings: Holding[] = rawHoldings?.length
-    ? rawHoldings.map((h: ApiHolding) => ({
-        id: h.id,
-        asset_name: h.asset_name,
-        asset_symbol: h.asset_symbol,
-        asset_type: h.asset_type,
-        quantity: h.quantity,
-        cost_basis: h.cost_basis,
-        current_value: h.current_value,
-        unrealized_gain: h.unrealized_gain,
-        unrealized_gain_pct: h.unrealized_gain_pct,
-        weight: h.weight,
-      }))
-    : MOCK_HOLDINGS
+  const holdings: Holding[] = (rawHoldings ?? []).map((h: ApiHolding) => ({
+    id: h.id,
+    asset_name: h.asset_name,
+    asset_symbol: h.asset_symbol,
+    asset_type: h.asset_type,
+    quantity: h.quantity,
+    cost_basis: h.cost_basis,
+    current_value: h.current_value,
+    unrealized_gain: h.unrealized_gain,
+    unrealized_gain_pct: h.unrealized_gain_pct,
+    weight: h.weight,
+  }))
 
   return (
     <Card className="overflow-hidden">

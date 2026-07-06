@@ -83,6 +83,18 @@ async def get_conversation(
     return success(conv.model_dump())
 
 
+@router.delete("/conversations/{conv_id}", status_code=204)
+async def delete_conversation(
+    conv_id: UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    org_id, user_id = _get_context(request)
+    svc = AIService(db, org_id, user_id)
+    await svc.delete_conversation(conv_id)
+
+
 @router.post("/conversations/{conv_id}/messages", response_model=dict)
 @limiter.limit("60/minute")
 async def send_message(

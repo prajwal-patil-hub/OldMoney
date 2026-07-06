@@ -15,26 +15,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import type { TimeSeriesPoint } from '@/types/api'
 
-function generateMockPerformance(): TimeSeriesPoint[] {
-  const data: TimeSeriesPoint[] = []
-  let current = 1_000_000
-  const now = new Date()
-  for (let i = 89; i >= 0; i--) {
-    const date = new Date(now)
-    date.setDate(date.getDate() - i)
-    const change = (Math.random() - 0.45) * 0.01 * current
-    current += change
-    data.push({
-      date: date.toISOString().split('T')[0]!,
-      value: Math.round(current),
-    })
-  }
-  return data
-}
-
-const MOCK_PERF = generateMockPerformance()
 
 export default function PortfolioDetailPage() {
   const params = useParams()
@@ -48,7 +29,7 @@ export default function PortfolioDetailPage() {
 
   const [activeTab, setActiveTab] = useState('overview')
 
-  const chartData = performance?.length ? performance.map((p) => ({ date: p.date, value: p.nav })) : MOCK_PERF
+  const chartData = (performance ?? []).map((p) => ({ date: p.date, value: p.nav }))
   const isPositive = (portfolio?.unrealized_gain ?? 0) >= 0
 
   if (loadingPortfolio) {

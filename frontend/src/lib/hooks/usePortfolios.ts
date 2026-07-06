@@ -35,7 +35,7 @@ export function usePortfolioHoldings(portfolioId: string) {
 
 export function usePortfolioPerformance(
   portfolioId: string,
-  params?: { start?: string; end?: string }
+  params?: { days?: number }
 ) {
   return useQuery({
     queryKey: [...PORTFOLIOS_QUERY_KEY, portfolioId, 'performance', params],

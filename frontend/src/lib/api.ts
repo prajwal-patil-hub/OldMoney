@@ -130,9 +130,9 @@ export const portfoliosApi = {
   update: (id: string, data: Partial<import('@/types/portfolio').CreatePortfolioInput>) =>
     api.patch<import('@/types/portfolio').Portfolio>(`/portfolios/${id}`, data),
   delete: (id: string) => api.delete(`/portfolios/${id}`),
-  holdings: (id: string) =>
-    api.get<import('@/types/portfolio').Holding[]>(`/portfolios/${id}/holdings`),
-  performance: (id: string, params?: { start?: string; end?: string }) =>
+  holdings: (portfolioId: string) =>
+    api.get<import('@/types/portfolio').Holding[]>('/holdings', { params: { portfolio_id: portfolioId } }),
+  performance: (id: string, params?: { days?: number }) =>
     api.get<import('@/types/portfolio').PortfolioPerformance[]>(`/portfolios/${id}/performance`, {
       params,
     }),
