@@ -8,6 +8,19 @@ import type { AssetType } from '@/types/portfolio'
 
 export const ASSETS_QUERY_KEY = ['assets'] as const
 
+// The backend nests the most recent price as latest_price: { close, price_date, source };
+// the UI reads flat current_price / price_updated_at. Normalize here, coercing
+// Decimal-as-string to number.
+function normalizeAsset(raw: Record<string, unknown>): Asset {
+  const latest = raw.latest_price as { close?: unknown; price_date?: string; source?: string } | null
+  return {
+    ...(raw as unknown as Asset),
+    current_price: latest?.close != null ? Number(latest.close) : undefined,
+    price_updated_at: latest?.price_date,
+    price_source: latest?.source,
+  }
+}
+
 export interface AssetFilters {
   asset_type?: AssetType | 'all'
   search?: string
@@ -27,7 +40,10 @@ export function useAssets(filters?: AssetFilters) {
           page,
           page_size,
         })
-        .then((r) => r.data),
+        .then((r) => ({
+          ...r.data,
+          items: (r.data.items ?? []).map((a) => normalizeAsset(a as unknown as Record<string, unknown>)),
+        })),
     staleTime: STALE_TIME.MEDIUM,
   })
 }
@@ -35,7 +51,8 @@ export function useAssets(filters?: AssetFilters) {
 export function useAsset(id: string) {
   return useQuery({
     queryKey: [...ASSETS_QUERY_KEY, id],
-    queryFn: () => assetsApi.get(id).then((r) => r.data),
+    queryFn: () =>
+      assetsApi.get(id).then((r) => normalizeAsset(r.data as unknown as Record<string, unknown>)),
     staleTime: STALE_TIME.MEDIUM,
     enabled: !!id,
   })

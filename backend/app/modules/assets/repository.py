@@ -4,7 +4,7 @@ from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,12 +30,20 @@ class AssetRepository:
         org_id: UUID,
         symbol: str | None = None,
         name: str | None = None,
+        search: str | None = None,
         asset_type: AssetType | None = None,
         is_active: bool | None = None,
         offset: int = 0,
         limit: int = 20,
     ) -> tuple[list[Asset], int]:
         q = select(Asset).where(Asset.org_id == org_id, Asset.deleted_at.is_(None))
+        if search:
+            q = q.where(
+                or_(
+                    Asset.symbol.ilike(f"%{search}%"),
+                    Asset.name.ilike(f"%{search}%"),
+                )
+            )
         if symbol:
             q = q.where(Asset.symbol.ilike(f"%{symbol}%"))
         if name:

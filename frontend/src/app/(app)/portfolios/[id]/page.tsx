@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, TrendingUp, DollarSign, Percent, Scale } from 'lucide-react'
-import { usePortfolio, usePortfolioHoldings, usePortfolioPerformance, usePortfolioAllocation } from '@/lib/hooks/usePortfolios'
+import { ArrowLeft, TrendingUp, DollarSign, Layers, Scale } from 'lucide-react'
+import { usePortfolio, usePortfolioHoldings, usePortfolioPerformance, usePortfolioAllocation, usePortfolioSummary } from '@/lib/hooks/usePortfolios'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { MetricCard } from '@/components/shared/MetricCard'
 import { HoldingsTable } from '@/components/tables/HoldingsTable'
@@ -23,14 +23,15 @@ export default function PortfolioDetailPage() {
   const id = params.id as string
 
   const { data: portfolio, isLoading: loadingPortfolio } = usePortfolio(id)
+  const { data: summary } = usePortfolioSummary(id)
   const { data: holdings, isLoading: loadingHoldings } = usePortfolioHoldings(id)
   const { data: performance, isLoading: loadingPerf } = usePortfolioPerformance(id)
   const { data: allocation, isLoading: loadingAllocation } = usePortfolioAllocation(id)
 
   const [activeTab, setActiveTab] = useState('overview')
 
-  const chartData = (performance ?? []).map((p) => ({ date: p.date, value: p.nav }))
-  const isPositive = (portfolio?.unrealized_gain ?? 0) >= 0
+  const chartData = performance ?? []
+  const isPositive = (summary?.unrealized_gain_loss ?? 0) >= 0
 
   if (loadingPortfolio) {
     return (
@@ -83,28 +84,26 @@ export default function PortfolioDetailPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <MetricCard
           label="Current Value"
-          value={formatCurrency(portfolio.total_value ?? 0, portfolio.base_currency)}
+          value={formatCurrency(summary?.total_value ?? 0, portfolio.base_currency)}
           icon={DollarSign}
         />
         <MetricCard
           label="Cost Basis"
-          value={formatCurrency(portfolio.total_cost ?? 0, portfolio.base_currency)}
+          value={formatCurrency(summary?.total_cost_basis ?? 0, portfolio.base_currency)}
           icon={Scale}
         />
         <MetricCard
           label="Unrealized G/L"
-          value={`${isPositive ? '+' : ''}${formatCurrency(portfolio.unrealized_gain ?? 0, portfolio.base_currency)}`}
-          change={portfolio.unrealized_gain_pct}
+          value={`${isPositive ? '+' : ''}${formatCurrency(summary?.unrealized_gain_loss ?? 0, portfolio.base_currency)}`}
+          change={summary?.unrealized_gain_loss_pct}
           icon={TrendingUp}
           valueClassName={isPositive ? 'text-success' : 'text-danger'}
         />
         <MetricCard
-          label="Day Change"
-          value={`${(portfolio.day_change ?? 0) >= 0 ? '+' : ''}${formatCurrency(portfolio.day_change ?? 0, portfolio.base_currency)}`}
-          change={portfolio.day_change_pct}
-          changeLabel="today"
-          icon={Percent}
-          valueClassName={(portfolio.day_change ?? 0) >= 0 ? 'text-success' : 'text-danger'}
+          label="Holdings"
+          value={`${summary?.num_holdings ?? 0}`}
+          changeLabel={`across ${summary?.num_accounts ?? 0} account${(summary?.num_accounts ?? 0) === 1 ? '' : 's'}`}
+          icon={Layers}
         />
       </div>
 

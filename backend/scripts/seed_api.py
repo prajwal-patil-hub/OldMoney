@@ -124,8 +124,8 @@ def main() -> None:
     org_token = switched["access_token"]
     oauth = {"Authorization": f"Bearer {org_token}"}
 
-    # ── 4. Assets (+ a recent price for current-value math) ───────────────────
-    print("\n[4/6] Creating assets & prices...")
+    # ── 4. Assets (+ 180 days of price history for performance charts) ────────
+    print("\n[4/6] Creating assets & price history...")
     existing_assets = check(client.get("/assets", params={"page_size": 200}, headers=oauth), "list assets")
     by_symbol = {a["symbol"]: a for a in existing_assets}
     asset_ids: dict[str, str] = {}
@@ -139,11 +139,32 @@ def main() -> None:
                 "asset_type": a["asset_type"], "sector": a["sector"], "currency": "USD",
             }, headers=oauth), f"create asset {a['symbol']}")
         asset_ids[a["symbol"]] = asset["id"]
-        # Post today's close price (idempotent per date)
-        client.post(f"/assets/{asset['id']}/prices", json={
-            "price_date": date.today().isoformat(), "close": a["price"], "source": "seed",
-        }, headers=oauth)
     print(f"  ✓ {len(asset_ids)} assets ready")
+
+    # Generate 180 days of daily prices per asset (random walk ending at
+    # today's price) and bulk-upload as one CSV — this is what makes the
+    # dashboard/portfolio performance charts draw a real curve.
+    HISTORY_DAYS = 180
+    today_d = date.today()
+    lines = ["date,symbol,close"]
+    for a in ASSETS:
+        vol = 0.035 if a["asset_type"] == "CRYPTO" else 0.015
+        # Walk backwards from today's price so the series ends exactly at it.
+        px = a["price"]
+        series: list[tuple[date, float]] = [(today_d, px)]
+        for i in range(1, HISTORY_DAYS + 1):
+            px = px / (1 + random.gauss(0.0006, vol))  # invert a daily return
+            px = max(px, 0.01)
+            series.append((today_d - timedelta(days=i), round(px, 4)))
+        for d, p in series:
+            lines.append(f"{d.isoformat()},{a['symbol']},{p}")
+    csv_blob = "\n".join(lines)
+    imp = check(client.post(
+        "/assets/prices/import",
+        files={"file": ("prices.csv", csv_blob, "text/csv")},
+        headers=oauth,
+    ), "bulk price import")
+    print(f"  ✓ Price history: {imp.get('success_count', '?')} rows imported, {imp.get('error_count', 0)} errors")
 
     price_of = {a["symbol"]: a["price"] for a in ASSETS}
 

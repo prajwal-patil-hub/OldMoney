@@ -22,29 +22,48 @@ export function useTopHoldings(limit = 10) {
     queryFn: () =>
       dashboardApi.topHoldings(limit).then((r) => {
         const rows = (r.data as unknown as Record<string, unknown>[]) ?? []
-        return rows.map((h): Holding => {
+        // The backend stores one holdings row per trade date (position deltas)
+        // and top-holdings returns them unaggregated — group by asset so the
+        // table shows one row per instrument.
+        const byAsset = new Map<string, Holding>()
+        for (const h of rows) {
+          const assetId = String(h.asset_id ?? '')
           const currentValue = num(h.current_value)
           const costBasis = num(h.cost_basis)
-          const gain = h.unrealized_gain_loss != null ? num(h.unrealized_gain_loss) : currentValue - costBasis
-          const quantity = num(h.quantity)
-          return {
-            id: String(h.holding_id ?? h.id ?? ''),
-            portfolio_id: String(h.portfolio_id ?? ''),
-            asset_id: String(h.asset_id ?? ''),
-            asset_name: String(h.asset_name ?? ''),
-            asset_symbol: String(h.asset_symbol ?? ''),
-            asset_type: h.asset_type as AssetType,
-            quantity,
-            avg_cost: quantity > 0 ? costBasis / quantity : 0,
-            cost_basis: costBasis,
-            current_price: num(h.current_price),
-            current_value: currentValue,
-            unrealized_gain: gain,
-            unrealized_gain_pct: costBasis > 0 ? (gain / costBasis) * 100 : 0,
-            weight: num(h.weight_pct) / 100,
-            updated_at: String(h.as_of_date ?? ''),
+          const prev = byAsset.get(assetId)
+          if (prev) {
+            prev.quantity += num(h.quantity)
+            prev.cost_basis += costBasis
+            prev.current_value += currentValue
+          } else {
+            byAsset.set(assetId, {
+              id: String(h.holding_id ?? h.id ?? assetId),
+              portfolio_id: String(h.portfolio_id ?? ''),
+              asset_id: assetId,
+              asset_name: String(h.asset_name ?? ''),
+              asset_symbol: String(h.asset_symbol ?? ''),
+              asset_type: h.asset_type as AssetType,
+              quantity: num(h.quantity),
+              avg_cost: 0,
+              cost_basis: costBasis,
+              current_price: num(h.current_price),
+              current_value: currentValue,
+              unrealized_gain: 0,
+              unrealized_gain_pct: 0,
+              weight: 0,
+              updated_at: String(h.as_of_date ?? ''),
+            })
           }
-        })
+        }
+        const holdings = [...byAsset.values()]
+        const totalValue = holdings.reduce((s, h) => s + h.current_value, 0)
+        for (const h of holdings) {
+          h.unrealized_gain = h.current_value - h.cost_basis
+          h.unrealized_gain_pct = h.cost_basis > 0 ? (h.unrealized_gain / h.cost_basis) * 100 : 0
+          h.avg_cost = h.quantity > 0 ? h.cost_basis / h.quantity : 0
+          h.weight = totalValue > 0 ? h.current_value / totalValue : 0
+        }
+        return holdings.sort((a, b) => b.current_value - a.current_value).slice(0, limit)
       }),
     staleTime: STALE_TIME.SHORT,
   })

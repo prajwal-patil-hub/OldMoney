@@ -47,6 +47,25 @@ const ROLE_LABELS: Record<Role, string> = {
   viewer: 'Viewer',
 }
 
+// The backend uses a different role vocabulary (SUPERADMIN/ORG_ADMIN/ADVISOR/
+// ANALYST/CLIENT/VIEWER) than the UI's owner/admin/member/viewer. Translate at
+// the boundary in both directions.
+const FROM_BACKEND_ROLE: Record<string, Role> = {
+  SUPERADMIN: 'owner',
+  ORG_ADMIN: 'admin',
+  ADVISOR: 'member',
+  ANALYST: 'member',
+  CLIENT: 'viewer',
+  VIEWER: 'viewer',
+}
+
+const TO_BACKEND_ROLE: Record<Role, string> = {
+  owner: 'SUPERADMIN',
+  admin: 'ORG_ADMIN',
+  member: 'ANALYST',
+  viewer: 'VIEWER',
+}
+
 type TabId = 'organization' | 'members' | 'account' | 'security' | 'appearance'
 
 interface NavItem {
@@ -174,7 +193,26 @@ function MembersTab() {
 
   const { data: members, isLoading } = useQuery({
     queryKey: ['org', activeOrgId, 'members'],
-    queryFn: () => orgApi.members(activeOrgId!).then((r) => r.data),
+    queryFn: () =>
+      orgApi.members(activeOrgId!).then((r) => {
+        // Backend returns flat MemberOut ({user_id, email, full_name, role, ...});
+        // the table renders the nested OrgMember shape.
+        const rows = (r.data as unknown as Record<string, unknown>[]) ?? []
+        return rows.map((m) => ({
+          id: String(m.id ?? ''),
+          org_id: String(m.org_id ?? ''),
+          user: {
+            id: String(m.user_id ?? ''),
+            email: String(m.email ?? ''),
+            full_name: String(m.full_name ?? ''),
+            created_at: String(m.created_at ?? ''),
+            updated_at: String(m.created_at ?? ''),
+          },
+          role: FROM_BACKEND_ROLE[String(m.role)] ?? 'viewer',
+          invited_at: String(m.created_at ?? ''),
+          joined_at: String(m.created_at ?? ''),
+        }))
+      }),
     staleTime: STALE_TIME.MEDIUM,
     enabled: !!activeOrgId,
   })
@@ -190,7 +228,7 @@ function MembersTab() {
 
   const roleUpdateMutation = useMutation({
     mutationFn: ({ userId, role }: { userId: string; role: Role }) =>
-      orgApi.updateMemberRole(activeOrgId!, userId, role),
+      orgApi.updateMemberRole(activeOrgId!, userId, TO_BACKEND_ROLE[role] as Role),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['org', activeOrgId, 'members'] })
     },
@@ -201,7 +239,7 @@ function MembersTab() {
     if (!inviteEmail.trim()) return
     setIsInviting(true)
     try {
-      await orgApi.inviteMember(activeOrgId!, inviteEmail.trim(), inviteRole)
+      await orgApi.inviteMember(activeOrgId!, inviteEmail.trim(), TO_BACKEND_ROLE[inviteRole] as Role)
       toast.success(`Invitation sent to ${inviteEmail}`)
       setInviteOpen(false)
       setInviteEmail('')

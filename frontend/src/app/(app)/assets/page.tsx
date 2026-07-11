@@ -1,9 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { Search, TrendingUp, Filter } from 'lucide-react'
-import { assetsApi } from '@/lib/api'
+import { useAssets } from '@/lib/hooks/useAssets'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { Card } from '@/components/ui/card'
@@ -23,18 +22,11 @@ export default function AssetsPage() {
   const [assetType, setAssetType] = useState<AssetType | 'all'>('all')
   const [page, setPage] = useState(1)
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['assets', { search, assetType, page }],
-    queryFn: () =>
-      assetsApi
-        .list({
-          search: search || undefined,
-          asset_type: assetType !== 'all' ? assetType : undefined,
-          page,
-          page_size: 20,
-        })
-        .then((r) => r.data),
-    staleTime: STALE_TIME.MEDIUM,
+  const { data, isLoading } = useAssets({
+    search: search || undefined,
+    asset_type: assetType,
+    page,
+    page_size: 20,
   })
 
   const assets = data?.items ?? []

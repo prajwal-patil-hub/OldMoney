@@ -61,8 +61,8 @@ export function useConversations() {
   return useQuery({
     queryKey: AI_QUERY_KEYS.conversations,
     queryFn: async () => {
-      const res = await api.get<{ data: AIConversation[] }>('/ai/conversations')
-      return res.data.data
+      const res = await api.get<AIConversation[]>('/ai/conversations')
+      return res.data ?? []
     },
     staleTime: STALE_TIME.SHORT,
   })
@@ -72,8 +72,8 @@ export function useConversation(id: string) {
   return useQuery({
     queryKey: AI_QUERY_KEYS.conversation(id),
     queryFn: async () => {
-      const res = await api.get<{ data: AIConversationDetail }>(`/ai/conversations/${id}`)
-      return res.data.data
+      const res = await api.get<AIConversationDetail>(`/ai/conversations/${id}`)
+      return res.data
     },
     staleTime: STALE_TIME.SHORT,
     enabled: !!id,
@@ -84,8 +84,8 @@ export function useCreateConversation() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (input: CreateConversationInput = {}) => {
-      const res = await api.post<{ data: AIConversation }>('/ai/conversations', input)
-      return res.data.data
+      const res = await api.post<AIConversation>('/ai/conversations', input)
+      return res.data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: AI_QUERY_KEYS.conversations })
@@ -111,8 +111,8 @@ export function useAIStatus() {
   return useQuery({
     queryKey: AI_QUERY_KEYS.status,
     queryFn: async () => {
-      const res = await api.get<{ data: AIStatus }>('/ai/status')
-      return res.data.data
+      const res = await api.get<AIStatus>('/ai/status')
+      return res.data
     },
     staleTime: STALE_TIME.SHORT,
     retry: false,

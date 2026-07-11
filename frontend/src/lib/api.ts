@@ -158,7 +158,12 @@ export const portfoliosApi = {
     api.patch<import('@/types/portfolio').Portfolio>(`/portfolios/${id}`, data),
   delete: (id: string) => api.delete(`/portfolios/${id}`),
   holdings: (portfolioId: string) =>
-    api.get<import('@/types/portfolio').Holding[]>('/holdings', { params: { portfolio_id: portfolioId } }),
+    api.get<import('@/types/portfolio').Holding[]>('/holdings', {
+      // Holdings are stored as per-trade-date delta rows and aggregated
+      // client-side, so fetch the maximum page in one call.
+      params: { portfolio_id: portfolioId, page_size: 200 },
+    }),
+  summary: (id: string) => api.get(`/portfolios/${id}/summary`),
   performance: (id: string, params?: { days?: number }) =>
     api.get<import('@/types/portfolio').PortfolioPerformance[]>(`/portfolios/${id}/performance`, {
       params,

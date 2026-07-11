@@ -209,14 +209,17 @@ const config: Config = {
           from: { opacity: '1', transform: 'translateX(0)' },
           to:   { opacity: '0', transform: 'translateX(8px)' },
         },
-        // Dialog
+        // Dialog — keyframes must carry the -50%,-50% centering translate:
+        // animation fill-mode "both" makes the final frame's transform stick,
+        // so a bare scale/translateY here would clobber the centering and the
+        // dialog would render offset toward the bottom-right.
         'dialog-in': {
-          from: { opacity: '0', transform: 'scale(0.98) translateY(4px)' },
-          to:   { opacity: '1', transform: 'scale(1) translateY(0)' },
+          from: { opacity: '0', transform: 'translate(-50%, calc(-50% + 4px)) scale(0.98)' },
+          to:   { opacity: '1', transform: 'translate(-50%, -50%) scale(1)' },
         },
         'dialog-out': {
-          from: { opacity: '1', transform: 'scale(1) translateY(0)' },
-          to:   { opacity: '0', transform: 'scale(0.98) translateY(4px)' },
+          from: { opacity: '1', transform: 'translate(-50%, -50%) scale(1)' },
+          to:   { opacity: '0', transform: 'translate(-50%, calc(-50% + 4px)) scale(0.98)' },
         },
         // Spin (loading)
         spin: {
