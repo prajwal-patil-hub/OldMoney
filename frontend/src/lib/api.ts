@@ -30,7 +30,11 @@ function redirectToLogin() {
   }
 }
 
-// Unwrap the backend envelope { data: ..., errors: [], meta: ... } → inner data
+// Unwrap the backend envelope { data: ..., errors: [], meta: ... } → inner data.
+// Paginated list endpoints return the rows in `data` and pagination info in
+// `meta` ({ total, page, page_size, has_next }). The frontend consumes those as
+// PaginatedResponse<T> ({ items, total, page, page_size, pages }), so when we
+// detect a pagination meta alongside an array payload we reshape accordingly.
 function unwrapEnvelope(body: unknown): unknown {
   if (
     body !== null &&
@@ -38,7 +42,30 @@ function unwrapEnvelope(body: unknown): unknown {
     'data' in (body as object) &&
     'errors' in (body as object)
   ) {
-    return (body as Record<string, unknown>)['data']
+    const record = body as Record<string, unknown>
+    const data = record['data']
+    const meta = record['meta']
+
+    if (
+      Array.isArray(data) &&
+      meta !== null &&
+      typeof meta === 'object' &&
+      'page' in (meta as object) &&
+      'page_size' in (meta as object)
+    ) {
+      const m = meta as Record<string, unknown>
+      const total = typeof m['total'] === 'number' ? (m['total'] as number) : data.length
+      const pageSize = typeof m['page_size'] === 'number' ? (m['page_size'] as number) : total || 1
+      return {
+        items: data,
+        total,
+        page: typeof m['page'] === 'number' ? (m['page'] as number) : 1,
+        page_size: pageSize,
+        pages: Math.max(1, Math.ceil(total / (pageSize || 1))),
+      }
+    }
+
+    return data
   }
   return body
 }

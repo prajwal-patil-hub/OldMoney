@@ -18,6 +18,7 @@ export interface Transaction {
   account_id: string
   portfolio_id: string
   asset_id?: string
+  asset_symbol?: string // populated by the dashboard recent-transactions endpoint
   transaction_type: TransactionType
   trade_date: string
   settlement_date?: string

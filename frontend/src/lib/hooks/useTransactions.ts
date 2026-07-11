@@ -37,7 +37,17 @@ export function useTransaction(id: string) {
 export function useRecentTransactions(limit = 10) {
   return useQuery({
     queryKey: [...TRANSACTIONS_QUERY_KEY, 'recent', limit],
-    queryFn: () => dashboardApi.recentTransactions(limit).then((r) => r.data),
+    queryFn: () =>
+      dashboardApi.recentTransactions(limit).then((r) => {
+        const rows = (r.data as unknown as Record<string, unknown>[]) ?? []
+        // Backend serializes Decimal as strings — coerce numeric fields.
+        return rows.map((t) => ({
+          ...t,
+          net_amount: t.net_amount != null ? Number(t.net_amount) : undefined,
+          quantity: t.quantity != null ? Number(t.quantity) : undefined,
+          price: t.price != null ? Number(t.price) : undefined,
+        })) as unknown as import('@/types/transaction').Transaction[]
+      }),
     staleTime: STALE_TIME.SHORT,
   })
 }

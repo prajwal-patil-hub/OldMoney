@@ -289,7 +289,7 @@ function RecentTransactionsSection() {
                     {/* Row 1: name + amount */}
                     <div className="flex items-baseline justify-between gap-2">
                       <p className="text-sm font-medium text-text-primary truncate">
-                        {txn.asset_id ?? txn.portfolio_id ?? '—'}
+                        {txn.asset_symbol ?? txn.asset_id ?? txn.portfolio_id ?? '—'}
                       </p>
                       <span
                         className={cn(
