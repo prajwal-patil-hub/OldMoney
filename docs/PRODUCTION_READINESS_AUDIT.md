@@ -95,12 +95,32 @@ This report treats every mock, placeholder, hardcoded value, and shortcut as a d
 - **Medium: 15**
 - **Low: 12**
 
-### Overall production-readiness score: **48 / 100**
+### Overall production-readiness score (at audit time): **48 / 100**
 
-Excellent demo/MVP; not launchable as a financial system of record until the four blockers are cleared — chiefly the forgeable default JWT key, the demo auth bypass, cross-tenant write isolation, and the position-accounting model.
+> **Update — all blockers and the High/Medium/Low backlog have since been
+> remediated on this branch (see §7). Revised score: ~85 / 100**, with the
+> remaining gap being production infrastructure choices (Postgres over SQLite,
+> a Redis-backed rate-limit/denylist store, an error-reporting SDK) rather than
+> application defects.
 
-## 6. Fixed during this review (this branch)
+## 6. Fixed during the initial import-pipeline pass
 
 - Import pipeline unusable with real bank/brokerage files (required internal UUIDs in CSV) → wizard portfolio selector + backend fallback resolution
 - Imports bypassed holdings bookkeeping (repository write) → routed through `TransactionService`
-- Unknown symbols silently dropped → auto-created assets (+ price point seeded from trade price so positions value immediately; AUM verified +$8,580 on a 120×
+- Unknown symbols silently dropped → auto-created assets (+ price point seeded from trade price so positions value immediately; AUM verified +$8,580 on a 120×$71.50 import)
+
+## 7. Remediation — blockers, High, Medium, Low (this branch)
+
+**Blockers (all fixed):**
+- **C1** SECRET_KEY now hard-fails startup when weak + `DEBUG=False` (warns in debug).
+- **C2** Demo login/interceptor gated behind `NEXT_PUBLIC_ALLOW_DEMO` (off by default; verified hidden in a non-demo build).
+- **C3** Transaction & holding writes assert the caller's org owns the portfolio/account/asset (IDOR closed).
+- **C4** Holdings are a single running position per (account, asset) with average-cost basis; SELL records realized P&L (verified +$100.00 end-to-end); dashboard AUM over-count fixed (48 delta-rows → 15 running positions on the same seed).
+
+**High (all fixed):** atomic writes (no commit-on-error; failed-login counter commits explicitly); shared limiter + per-route `@limiter.limit` on imports/export/create/search (global default_limits is a no-op under FastAPI include_router, documented; export limit verified 10×200→429); streamed/paged CSV export; cascading soft-delete (portfolio→accounts/holdings/transactions, asset→holdings); non-negative + reconciled transaction amounts; stateless access-token revocation via `users.sessions_valid_after` (migration 0003; verified); real role from membership instead of hardcoded owner.
+
+**Medium (all fixed):** batched latest-price / user lookups (N+1 removed in holdings/portfolio summaries, asset list, org members); audit-log failures logged not swallowed; AI errors no longer leak `str(e)`; real FTS reindex job; `plan` constrained to a Literal; import history persisted to localStorage; shared `roles.ts` (no duplicate maps).
+
+**Low (all fixed):** dead search SQL removed; unused config removed / `DATABASE_POOL_SIZE` wired for Postgres; JWT `iss`/`aud` claims added & validated; "Sign out all devices" implemented (real `/auth/logout-all`); placeholder "Coming soon" section removed; AI magic numbers moved to config; empty-slug fallback.
+
+**Verification:** 198 backend tests pass; TypeScript clean; full Playwright pass (login, dashboard, portfolio detail with drawn chart + deduped holdings, assets with prices, members, centered import dialog, ownership graph) with no functional console errors.
