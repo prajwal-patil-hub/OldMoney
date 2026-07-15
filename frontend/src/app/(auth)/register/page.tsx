@@ -115,6 +115,7 @@ export default function RegisterPage() {
         plan: 'free',
         created_at: new Date().toISOString(),
       },
+      role: 'owner',
     })
     router.push('/dashboard')
   }

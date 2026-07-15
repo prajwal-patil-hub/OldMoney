@@ -21,6 +21,12 @@ class User(Base):
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Access tokens issued before this cutoff are rejected (stateless
+    # revocation). Bumped on password change / global logout so a stolen
+    # 15-minute access token can't outlive the credential change.
+    sessions_valid_after: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Relationships
     refresh_tokens: Mapped[list["RefreshToken"]] = relationship(

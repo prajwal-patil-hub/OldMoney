@@ -38,14 +38,13 @@ async def export_transactions(
 ):
     org_id = _get_org_id(request)
     svc = TransactionService(db)
-    csv_content = await svc.export_csv(
-        org_id=org_id,
-        portfolio_id=portfolio_id,
-        date_from=date_from,
-        date_to=date_to,
-    )
     return StreamingResponse(
-        iter([csv_content]),
+        svc.export_csv_stream(
+            org_id=org_id,
+            portfolio_id=portfolio_id,
+            date_from=date_from,
+            date_to=date_to,
+        ),
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=transactions.csv"},
     )

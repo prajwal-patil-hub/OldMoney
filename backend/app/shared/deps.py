@@ -54,6 +54,19 @@ async def get_current_user(
     if not user.is_active:
         raise AuthenticationError("User account is disabled")
 
+    # Stateless access-token revocation: reject tokens issued before the user's
+    # session cutoff (set on password change / global logout).
+    cutoff = user.sessions_valid_after
+    iat = payload.get("iat")
+    if cutoff is not None and iat is not None:
+        from datetime import UTC, datetime, timezone
+
+        issued_at = datetime.fromtimestamp(int(iat), tz=UTC)
+        if cutoff.tzinfo is None:
+            cutoff = cutoff.replace(tzinfo=timezone.utc)
+        if issued_at < cutoff:
+            raise AuthenticationError("Session expired, please sign in again")
+
     # Bind context for logging
     structlog.contextvars.bind_contextvars(
         user_id=str(user.id),

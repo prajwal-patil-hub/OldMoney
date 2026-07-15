@@ -272,6 +272,27 @@ class TestChangePassword:
         )
         assert resp3.status_code == 200
 
+    async def test_change_password_revokes_access_token(
+        self, client: AsyncClient, auth_headers: dict, registered_user: dict
+    ):
+        # The access token works before the password change...
+        me_before = await client.get("/api/v1/auth/me", headers=auth_headers)
+        assert me_before.status_code == 200
+
+        resp = await client.post(
+            "/api/v1/auth/change-password",
+            json={
+                "current_password": registered_user["password"],
+                "new_password": "NewSecure1Pass",
+            },
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+
+        # ...and is rejected afterwards (stateless revocation via cutoff).
+        me_after = await client.get("/api/v1/auth/me", headers=auth_headers)
+        assert me_after.status_code == 401, me_after.text
+
     async def test_change_password_wrong_current(self, client: AsyncClient, auth_headers: dict):
         resp = await client.post(
             "/api/v1/auth/change-password",

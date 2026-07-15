@@ -136,6 +136,28 @@ class PortfolioService:
         portfolio = await self.portfolio_repo.get_by_id(portfolio_id, org_id)
         if not portfolio:
             raise NotFoundError("Portfolio not found")
+
+        # Cascade the soft-delete to children in the same transaction. Without
+        # this, a "deleted" portfolio's holdings/transactions stay live and keep
+        # counting toward AUM, allocation, and search.
+        from datetime import UTC, datetime
+        from sqlalchemy import update
+        from app.modules.portfolios.models import Account
+        from app.modules.holdings.models import Holding
+        from app.modules.transactions.models import Transaction
+
+        now = datetime.now(UTC)
+        for model in (Account, Holding, Transaction):
+            await self.db.execute(
+                update(model)
+                .where(
+                    model.portfolio_id == portfolio_id,
+                    model.org_id == org_id,
+                    model.deleted_at.is_(None),
+                )
+                .values(deleted_at=now)
+            )
+
         portfolio.soft_delete()
         await self.db.flush()
 

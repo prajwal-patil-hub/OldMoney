@@ -4,7 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.modules.transactions.models import TransactionType
 
@@ -16,15 +16,41 @@ class CreateTransactionRequest(BaseModel):
     transaction_type: TransactionType
     trade_date: date
     settlement_date: date | None = None
-    quantity: Decimal | None = None
-    price: Decimal | None = None
-    gross_amount: Decimal | None = None
-    fees: Decimal = Decimal("0")
-    net_amount: Decimal | None = None
+    quantity: Decimal | None = Field(default=None, ge=0)
+    price: Decimal | None = Field(default=None, ge=0)
+    gross_amount: Decimal | None = Field(default=None, ge=0)
+    fees: Decimal = Field(default=Decimal("0"), ge=0)
+    net_amount: Decimal | None = Field(default=None, ge=0)
     currency: str = Field(default="USD", min_length=3, max_length=3)
     external_id: str | None = None
     notes: str | None = None
     metadata: dict = {}
+
+    @model_validator(mode="after")
+    def check_consistency(self) -> "CreateTransactionRequest":
+        """Reject internally inconsistent amounts (non-negativity is enforced
+        by the per-field ge=0 constraints above).
+
+        When quantity and price are both supplied, any supplied gross/net must
+        reconcile — this stops a client from fabricating a cost basis that
+        contradicts the trade. Net is side-aware: a BUY pays price + fees, a
+        SELL nets price − fees.
+        """
+        if self.quantity is not None and self.price is not None:
+            computed = self.quantity * self.price
+            if self.gross_amount is not None and abs(self.gross_amount - computed) > Decimal("0.01"):
+                raise ValueError("gross_amount does not match quantity × price")
+            if self.net_amount is not None:
+                fees = self.fees or Decimal("0")
+                expected_net = (
+                    computed - fees if self.transaction_type == TransactionType.SELL
+                    else computed + fees
+                )
+                if abs(self.net_amount - expected_net) > Decimal("0.01"):
+                    raise ValueError(
+                        "net_amount does not reconcile with quantity × price ± fees"
+                    )
+        return self
 
 
 class UpdateTransactionRequest(BaseModel):

@@ -103,6 +103,24 @@ class AssetService:
         asset = await self.repo.get_by_id(asset_id, org_id)
         if not asset:
             raise NotFoundError("Asset not found")
+
+        # Cascade: holdings referencing this asset must not linger as live rows
+        # (they'd be counted in some aggregates and dropped from others,
+        # producing inconsistent totals across endpoints).
+        from datetime import UTC, datetime
+        from sqlalchemy import update
+        from app.modules.holdings.models import Holding
+
+        await self.db.execute(
+            update(Holding)
+            .where(
+                Holding.asset_id == asset_id,
+                Holding.org_id == org_id,
+                Holding.deleted_at.is_(None),
+            )
+            .values(deleted_at=datetime.now(UTC))
+        )
+
         asset.soft_delete()
         await self.db.flush()
 

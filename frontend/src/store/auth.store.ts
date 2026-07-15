@@ -51,7 +51,9 @@ export const useAuthStore = create<AuthState>()(
           user: data.user ?? null,
           activeOrgId: data.org?.id ?? null,
           activeOrg: data.org ?? null,
-          activeOrgRole: 'owner',
+          // Real role from the membership; server enforcement is still the
+          // true boundary, but the UI must not assume owner for everyone.
+          activeOrgRole: data.role ?? 'viewer',
           refreshToken: data.refresh_token ?? null,
         })
       },

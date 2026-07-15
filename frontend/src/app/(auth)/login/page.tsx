@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { ALLOW_DEMO_LOGIN } from '@/lib/constants'
+import { roleForOrg } from '@/lib/roles'
 import type { LoginApiResponse, OrgApiResponse } from '@/types/api'
 
 interface ApiErrorDetail {
@@ -82,6 +83,7 @@ export default function LoginPage() {
         plan: 'free',
         created_at: new Date().toISOString(),
       },
+      role: 'owner',
     })
     router.push('/dashboard')
   }
@@ -167,6 +169,7 @@ export default function LoginPage() {
           plan: (firstOrg.plan as 'free' | 'pro' | 'enterprise') || 'free',
           created_at: firstOrg.created_at,
         },
+        role: roleForOrg(loginData.user.memberships, firstOrg.id),
       })
 
       router.push('/dashboard')

@@ -274,44 +274,66 @@ class TransactionService:
         tx.soft_delete()
         await self.db.flush()
 
-    async def export_csv(
+    _EXPORT_FIELDS = [
+        "id", "account_id", "portfolio_id", "asset_id", "transaction_type",
+        "trade_date", "settlement_date", "quantity", "price",
+        "gross_amount", "fees", "net_amount", "currency", "external_id", "notes",
+    ]
+
+    @staticmethod
+    def _tx_row(tx: Transaction) -> dict:
+        return {
+            "id": str(tx.id),
+            "account_id": str(tx.account_id),
+            "portfolio_id": str(tx.portfolio_id),
+            "asset_id": str(tx.asset_id) if tx.asset_id else "",
+            "transaction_type": tx.transaction_type.value,
+            "trade_date": str(tx.trade_date),
+            "settlement_date": str(tx.settlement_date) if tx.settlement_date else "",
+            "quantity": str(tx.quantity) if tx.quantity else "",
+            "price": str(tx.price) if tx.price else "",
+            "gross_amount": str(tx.gross_amount) if tx.gross_amount else "",
+            "fees": str(tx.fees),
+            "net_amount": str(tx.net_amount) if tx.net_amount else "",
+            "currency": tx.currency,
+            "external_id": tx.external_id or "",
+            "notes": tx.notes or "",
+        }
+
+    async def export_csv_stream(
         self,
         org_id: UUID,
         portfolio_id: UUID | None = None,
         date_from: date | None = None,
         date_to: date | None = None,
-    ) -> str:
-        txs, _ = await self.repo.list(
-            org_id=org_id,
-            portfolio_id=portfolio_id,
-            date_from=date_from,
-            date_to=date_to,
-            limit=100000,
-        )
-        output = io.StringIO()
-        fieldnames = [
-            "id", "account_id", "portfolio_id", "asset_id", "transaction_type",
-            "trade_date", "settlement_date", "quantity", "price",
-            "gross_amount", "fees", "net_amount", "currency", "external_id", "notes",
-        ]
-        writer = csv.DictWriter(output, fieldnames=fieldnames)
-        writer.writeheader()
-        for tx in txs:
-            writer.writerow({
-                "id": str(tx.id),
-                "account_id": str(tx.account_id),
-                "portfolio_id": str(tx.portfolio_id),
-                "asset_id": str(tx.asset_id) if tx.asset_id else "",
-                "transaction_type": tx.transaction_type.value,
-                "trade_date": str(tx.trade_date),
-                "settlement_date": str(tx.settlement_date) if tx.settlement_date else "",
-                "quantity": str(tx.quantity) if tx.quantity else "",
-                "price": str(tx.price) if tx.price else "",
-                "gross_amount": str(tx.gross_amount) if tx.gross_amount else "",
-                "fees": str(tx.fees),
-                "net_amount": str(tx.net_amount) if tx.net_amount else "",
-                "currency": tx.currency,
-                "external_id": tx.external_id or "",
-                "notes": tx.notes or "",
-            })
-        return output.getvalue()
+        page_size: int = 1000,
+    ):
+        """Yield the CSV a page at a time so memory stays O(page_size), not
+        O(all rows). Replaces the old load-100k-rows-into-one-string approach.
+        """
+        import io as _io
+
+        header = _io.StringIO()
+        csv.DictWriter(header, fieldnames=self._EXPORT_FIELDS).writeheader()
+        yield header.getvalue()
+
+        offset = 0
+        while True:
+            txs, _total = await self.repo.list(
+                org_id=org_id,
+                portfolio_id=portfolio_id,
+                date_from=date_from,
+                date_to=date_to,
+                offset=offset,
+                limit=page_size,
+            )
+            if not txs:
+                break
+            buf = _io.StringIO()
+            writer = csv.DictWriter(buf, fieldnames=self._EXPORT_FIELDS)
+            for tx in txs:
+                writer.writerow(self._tx_row(tx))
+            yield buf.getvalue()
+            if len(txs) < page_size:
+                break
+            offset += page_size

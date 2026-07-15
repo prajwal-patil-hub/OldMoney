@@ -4,8 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+from app.core.rate_limit import limiter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -16,7 +15,6 @@ from app.shared.responses import success
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
-limiter = Limiter(key_func=get_remote_address)
 
 
 def _get_context(request: Request) -> tuple[UUID, UUID]:

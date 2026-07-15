@@ -6,9 +6,11 @@ from contextlib import asynccontextmanager
 import structlog
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
+from slowapi.middleware import SlowAPIMiddleware
+
+from app.core.rate_limit import limiter
 
 from app.core.config import settings
 from app.core.exceptions import (
@@ -92,8 +94,6 @@ async def lifespan(app: FastAPI):
     log.info("shutdown_complete")
 
 
-limiter = Limiter(key_func=get_remote_address)
-
 app = FastAPI(
     title=settings.APP_NAME + " API",
     version="1.0.0",
@@ -116,6 +116,7 @@ app.add_exception_handler(Exception, unhandled_exception_handler)
 # Execution order on request:  CORS → SecurityHeaders → RequestID → BodySizeLimit → AuditLog → route
 # Execution order on response: route → AuditLog → BodySizeLimit → RequestID → SecurityHeaders → CORS
 # CORS must be outermost so it handles OPTIONS preflight before any other middleware runs
+app.add_middleware(SlowAPIMiddleware)  # enforces default_limits on every route
 app.add_middleware(AuditLogMiddleware)
 app.add_middleware(
     BodySizeLimitMiddleware,

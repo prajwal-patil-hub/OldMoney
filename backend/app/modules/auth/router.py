@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+from app.core.rate_limit import limiter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -23,7 +22,6 @@ from app.shared.responses import success
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-limiter = Limiter(key_func=get_remote_address)
 
 
 def _get_client_info(request: Request) -> tuple[str | None, str | None]:

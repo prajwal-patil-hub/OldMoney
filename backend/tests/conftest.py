@@ -20,11 +20,10 @@ from app.main import app
 from app.shared.base_model import Base
 
 # Disable rate limiting for all tests — every request comes from 127.0.0.1
-# which would exhaust per-IP limits within a single test run.
-from app.modules.auth.router import limiter as _auth_limiter
-from app.modules.ai.router import limiter as _ai_limiter
-_auth_limiter.enabled = False
-_ai_limiter.enabled = False
+# which would exhaust per-IP limits within a single test run. One shared
+# limiter now backs every route, so disabling it once covers all of them.
+from app.core.rate_limit import limiter as _limiter
+_limiter.enabled = False
 
 
 # Promote anyio_backend to session scope so it is compatible with the

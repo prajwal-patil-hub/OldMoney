@@ -19,6 +19,7 @@ export interface AuthResponse {
   token_type: string
   user: User
   org?: Organization | null
+  role?: Role
 }
 
 // Shape of what the backend /auth/login endpoint actually returns (after envelope unwrap)

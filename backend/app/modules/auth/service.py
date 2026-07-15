@@ -211,8 +211,11 @@ class AuthService:
         if not verify_password(current_password, user.hashed_password):
             raise ValidationError("Current password is incorrect")
         user.hashed_password = hash_password(new_password)
-        # Revoke all refresh tokens to force re-login
+        # Revoke all refresh tokens AND invalidate every outstanding access
+        # token by moving the session cutoff forward — a stolen 15-minute
+        # access token must not survive a password change.
         await self.token_repo.revoke_all_for_user(user_id)
+        user.sessions_valid_after = datetime.now(UTC)
         await self.db.flush()
         log.info("password_changed", user_id=str(user_id))
 
