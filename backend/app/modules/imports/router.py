@@ -82,6 +82,15 @@ def _sanitize_target(target: str) -> str:
     return target
 
 
+def _parse_portfolio_id(raw: str | None) -> "UUID | None":
+    if not raw or not raw.strip():
+        return None
+    try:
+        return UUID(raw.strip())
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid portfolio_id")
+
+
 @router.post("/preview", response_model=dict)
 async def preview_import(
     request: Request,
@@ -89,6 +98,7 @@ async def preview_import(
     target: str = Form(...),
     date_format: str = Form(default="%Y-%m-%d"),
     skip_rows: int = Form(default=0, ge=0, le=100),
+    portfolio_id: str | None = Form(default=None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -104,6 +114,7 @@ async def preview_import(
         target=target,
         date_format=date_format,
         skip_rows=skip_rows,
+        default_portfolio_id=_parse_portfolio_id(portfolio_id),
     )
     return success(result.model_dump())
 
@@ -115,6 +126,7 @@ async def commit_import(
     target: str = Form(...),
     date_format: str = Form(default="%Y-%m-%d"),
     skip_rows: int = Form(default=0, ge=0, le=100),
+    portfolio_id: str | None = Form(default=None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -133,6 +145,7 @@ async def commit_import(
         target=target,
         date_format=date_format,
         skip_rows=skip_rows,
+        default_portfolio_id=_parse_portfolio_id(portfolio_id),
     )
     return success(result)
 

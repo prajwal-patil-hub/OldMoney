@@ -1,6 +1,6 @@
 'use client'
 
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { STALE_TIME } from '@/lib/constants'
 import type { ImportTemplate } from '@/types/imports'
@@ -34,6 +34,7 @@ export interface PreviewInput {
   target: string
   date_format?: string
   skip_rows?: number
+  portfolio_id?: string
 }
 
 export interface CommitInput {
@@ -41,6 +42,7 @@ export interface CommitInput {
   target: string
   date_format?: string
   skip_rows?: number
+  portfolio_id?: string
 }
 
 // ─── Query keys ─────────────────────────────────────────────────────────────
@@ -53,12 +55,13 @@ export const IMPORTS_QUERY_KEYS = {
 
 export function useImportPreview() {
   return useMutation({
-    mutationFn: async ({ file, target, date_format = '%Y-%m-%d', skip_rows = 0 }: PreviewInput) => {
+    mutationFn: async ({ file, target, date_format = '%Y-%m-%d', skip_rows = 0, portfolio_id }: PreviewInput) => {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('target', target)
       formData.append('date_format', date_format)
       formData.append('skip_rows', String(skip_rows))
+      if (portfolio_id) formData.append('portfolio_id', portfolio_id)
 
       const res = await api.post<ImportPreviewResponse>('/imports/preview', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -69,18 +72,31 @@ export function useImportPreview() {
 }
 
 export function useImportCommit() {
+  const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ file, target, date_format = '%Y-%m-%d', skip_rows = 0 }: CommitInput) => {
+    mutationFn: async ({ file, target, date_format = '%Y-%m-%d', skip_rows = 0, portfolio_id }: CommitInput) => {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('target', target)
       formData.append('date_format', date_format)
       formData.append('skip_rows', String(skip_rows))
+      if (portfolio_id) formData.append('portfolio_id', portfolio_id)
 
       const res = await api.post<ImportCommitResponse>('/imports/commit', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       return res.data
+    },
+    onSuccess: () => {
+      // An import writes transactions/holdings/prices server-side, which feeds
+      // every list, dropdown, and dashboard widget. Invalidate them all so the
+      // UI reflects the new data immediately instead of serving stale caches
+      // ("no data yet") until the next hard refresh.
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['holdings'] })
+      queryClient.invalidateQueries({ queryKey: ['assets'] })
+      queryClient.invalidateQueries({ queryKey: ['portfolios'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     },
   })
 }

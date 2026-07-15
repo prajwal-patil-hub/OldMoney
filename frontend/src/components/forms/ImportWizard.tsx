@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { useImportPreview, useImportCommit } from '@/lib/hooks/useImports'
 import type { ImportPreviewResponse, ImportCommitResponse } from '@/lib/hooks/useImports'
+import { usePortfolios } from '@/lib/hooks/usePortfolios'
 
 type WizardStep = 'upload' | 'preview' | 'done'
 
@@ -29,6 +30,7 @@ export function ImportWizard({ onComplete }: { onComplete?: () => void }) {
   const [step, setStep] = useState<WizardStep>('upload')
   const [file, setFile] = useState<File | null>(null)
   const [target, setTarget] = useState('transactions')
+  const [portfolioId, setPortfolioId] = useState('')
   const [dateFormat, setDateFormat] = useState('%Y-%m-%d')
   const [skipRows, setSkipRows] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
@@ -38,6 +40,10 @@ export function ImportWizard({ onComplete }: { onComplete?: () => void }) {
 
   const previewMutation = useImportPreview()
   const commitMutation = useImportCommit()
+  const { data: portfoliosData } = usePortfolios({ page_size: 100 })
+  const portfolios = portfoliosData?.items ?? []
+  // Prices are org-global; transactions/holdings land in a portfolio.
+  const needsPortfolio = target !== 'prices'
 
   const stepIndex = STEPS.findIndex((s) => s.id === step)
 
@@ -65,8 +71,15 @@ export function ImportWizard({ onComplete }: { onComplete?: () => void }) {
       toast.error('Please select a file')
       return
     }
+    if (needsPortfolio && !portfolioId) {
+      toast.error('Please select a target portfolio')
+      return
+    }
     try {
-      const result = await previewMutation.mutateAsync({ file, target, date_format: dateFormat, skip_rows: skipRows })
+      const result = await previewMutation.mutateAsync({
+        file, target, date_format: dateFormat, skip_rows: skipRows,
+        portfolio_id: needsPortfolio ? portfolioId : undefined,
+      })
       setPreviewData(result)
       setStep('preview')
     } catch {
@@ -77,7 +90,10 @@ export function ImportWizard({ onComplete }: { onComplete?: () => void }) {
   const handleCommit = async () => {
     if (!file) return
     try {
-      const result = await commitMutation.mutateAsync({ file, target, date_format: dateFormat, skip_rows: skipRows })
+      const result = await commitMutation.mutateAsync({
+        file, target, date_format: dateFormat, skip_rows: skipRows,
+        portfolio_id: needsPortfolio ? portfolioId : undefined,
+      })
       setCommitResult(result)
       setStep('done')
       toast.success(`Imported ${result.imported} rows successfully`)
@@ -152,6 +168,28 @@ export function ImportWizard({ onComplete }: { onComplete?: () => void }) {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Target portfolio (transactions/holdings land somewhere) */}
+              {needsPortfolio && (
+                <div className="space-y-1.5">
+                  <label htmlFor="import-portfolio" className="text-sm font-medium text-text-primary">
+                    Target Portfolio <span className="text-danger">*</span>
+                  </label>
+                  <Select value={portfolioId} onValueChange={setPortfolioId}>
+                    <SelectTrigger id="import-portfolio">
+                      <SelectValue placeholder="Select portfolio" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {portfolios.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-text-muted">
+                    Rows without an explicit portfolio in the file are imported here.
+                  </p>
+                </div>
+              )}
 
               {/* Date format */}
               <div className="space-y-1.5">
@@ -231,7 +269,7 @@ export function ImportWizard({ onComplete }: { onComplete?: () => void }) {
 
               <Button
                 onClick={handlePreview}
-                disabled={!file}
+                disabled={!file || (needsPortfolio && !portfolioId)}
                 loading={previewMutation.isPending}
                 className="w-full"
               >

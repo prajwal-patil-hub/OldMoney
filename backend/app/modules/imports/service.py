@@ -3,7 +3,7 @@ from __future__ import annotations
 import csv
 import io
 import json
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
 from uuid import UUID
@@ -141,11 +141,23 @@ def _parse_json(content: bytes) -> tuple[list[dict], list[str]]:
         raise ValidationError(f"Invalid JSON: {e}") from e
 
 
+def _parse_date(raw: str, date_format: str) -> date:
+    """Parse with the requested format first, falling back to ISO."""
+    raw = raw.strip()
+    try:
+        return datetime.strptime(raw, date_format).date()
+    except ValueError:
+        return date.fromisoformat(raw)
+
+
 def _validate_transaction_row(row: dict, row_num: int, date_format: str) -> tuple[dict | None, list[RowError]]:
     errors = []
     valid: dict[str, Any] = {}
 
-    required = ["account_id", "portfolio_id", "transaction_type", "trade_date"]
+    # account_id / portfolio_id are optional in the file: real brokerage and
+    # bank exports never contain our internal UUIDs. When absent, the commit
+    # step falls back to the portfolio selected in the import wizard.
+    required = ["transaction_type", "trade_date"]
     for field in required:
         if not row.get(field, "").strip():
             errors.append(RowError(row=row_num, field=field, error=f"'{field}' is required"))
@@ -153,18 +165,18 @@ def _validate_transaction_row(row: dict, row_num: int, date_format: str) -> tupl
     if errors:
         return None, errors
 
-    try:
-        valid["account_id"] = UUID(row["account_id"].strip())
-    except ValueError:
-        errors.append(RowError(row=row_num, field="account_id", error="Invalid UUID"))
+    for id_field in ("account_id", "portfolio_id"):
+        raw = row.get(id_field, "").strip()
+        if raw:
+            try:
+                valid[id_field] = UUID(raw)
+            except ValueError:
+                errors.append(RowError(row=row_num, field=id_field, error="Invalid UUID"))
+        else:
+            valid[id_field] = None
 
     try:
-        valid["portfolio_id"] = UUID(row["portfolio_id"].strip())
-    except ValueError:
-        errors.append(RowError(row=row_num, field="portfolio_id", error="Invalid UUID"))
-
-    try:
-        valid["trade_date"] = date.fromisoformat(row["trade_date"].strip())
+        valid["trade_date"] = _parse_date(row["trade_date"], date_format)
     except ValueError:
         errors.append(RowError(row=row_num, field="trade_date", error="Invalid date format (use YYYY-MM-DD)"))
 
@@ -191,7 +203,7 @@ def _validate_holding_row(row: dict, row_num: int, date_format: str) -> tuple[di
     errors = []
     valid: dict[str, Any] = {}
 
-    required = ["account_id", "portfolio_id", "asset_symbol", "quantity", "as_of_date"]
+    required = ["asset_symbol", "quantity", "as_of_date"]
     for field in required:
         if not row.get(field, "").strip():
             errors.append(RowError(row=row_num, field=field, error=f"'{field}' is required"))
@@ -199,18 +211,18 @@ def _validate_holding_row(row: dict, row_num: int, date_format: str) -> tuple[di
     if errors:
         return None, errors
 
-    try:
-        valid["account_id"] = UUID(row["account_id"].strip())
-    except ValueError:
-        errors.append(RowError(row=row_num, field="account_id", error="Invalid UUID"))
+    for id_field in ("account_id", "portfolio_id"):
+        raw = row.get(id_field, "").strip()
+        if raw:
+            try:
+                valid[id_field] = UUID(raw)
+            except ValueError:
+                errors.append(RowError(row=row_num, field=id_field, error="Invalid UUID"))
+        else:
+            valid[id_field] = None
 
     try:
-        valid["portfolio_id"] = UUID(row["portfolio_id"].strip())
-    except ValueError:
-        errors.append(RowError(row=row_num, field="portfolio_id", error="Invalid UUID"))
-
-    try:
-        valid["as_of_date"] = date.fromisoformat(row["as_of_date"].strip())
+        valid["as_of_date"] = _parse_date(row["as_of_date"], date_format)
     except ValueError:
         errors.append(RowError(row=row_num, field="as_of_date", error="Invalid date format"))
 
@@ -244,7 +256,7 @@ def _validate_price_row(row: dict, row_num: int, date_format: str) -> tuple[dict
         return None, errors
 
     try:
-        valid["price_date"] = date.fromisoformat(row["date"].strip())
+        valid["price_date"] = _parse_date(row["date"], date_format)
     except ValueError:
         errors.append(RowError(row=row_num, field="date", error="Invalid date format"))
 
@@ -284,6 +296,7 @@ class ImportService:
         target: str,
         date_format: str = "%Y-%m-%d",
         skip_rows: int = 0,
+        default_portfolio_id: UUID | None = None,
     ) -> ImportPreviewResponse:
         file_type = _detect_file_type(file_content, filename)
 
@@ -303,6 +316,13 @@ class ImportService:
 
         for i, row in enumerate(rows, start=2):
             valid_row, row_errors = validator(row, i, date_format)
+            if valid_row and target in ("transactions", "holdings"):
+                if valid_row.get("portfolio_id") is None and default_portfolio_id is None:
+                    row_errors = list(row_errors) + [RowError(
+                        row=i, field="portfolio_id",
+                        error="No portfolio_id in file — select a target portfolio in the wizard",
+                    )]
+                    valid_row = None
             if valid_row:
                 valid_rows.append(valid_row)
             all_errors.extend(row_errors)
@@ -325,6 +345,7 @@ class ImportService:
         target: str,
         date_format: str = "%Y-%m-%d",
         skip_rows: int = 0,
+        default_portfolio_id: UUID | None = None,
     ) -> dict:
         file_type = _detect_file_type(file_content, filename)
 
@@ -338,6 +359,17 @@ class ImportService:
         validator = _VALIDATORS.get(target)
         if not validator:
             raise ValidationError(f"Unknown import target: {target}")
+
+        # Validate the wizard-selected portfolio belongs to this org before
+        # using it as a fallback for rows that don't carry their own IDs.
+        default_account_id: UUID | None = None
+        if default_portfolio_id is not None:
+            from app.modules.portfolios.service import PortfolioService
+            pf_svc = PortfolioService(self.db)
+            await pf_svc.get_portfolio(default_portfolio_id, org_id)  # raises NotFoundError
+            default_account_id = await pf_svc.get_or_create_default_account_id(
+                default_portfolio_id, org_id
+            )
 
         imported = 0
         skipped = 0
@@ -353,6 +385,28 @@ class ImportService:
             if valid_row is None:
                 error_count += 1
                 continue
+
+            # Fall back to the wizard-selected portfolio/account when the file
+            # doesn't carry internal IDs (the normal case for bank exports).
+            if target in ("transactions", "holdings"):
+                if valid_row.get("portfolio_id") is None:
+                    if default_portfolio_id is None:
+                        error_count += 1
+                        error_details.append(RowError(
+                            row=i, field="portfolio_id",
+                            error="No portfolio_id in file — select a target portfolio in the wizard",
+                        ))
+                        continue
+                    valid_row["portfolio_id"] = default_portfolio_id
+                if valid_row.get("account_id") is None:
+                    if valid_row["portfolio_id"] == default_portfolio_id and default_account_id:
+                        valid_row["account_id"] = default_account_id
+                    else:
+                        from app.modules.portfolios.service import PortfolioService
+                        pf_svc = PortfolioService(self.db)
+                        valid_row["account_id"] = await pf_svc.get_or_create_default_account_id(
+                            valid_row["portfolio_id"], org_id
+                        )
 
             try:
                 if target == "transactions":
@@ -388,10 +442,35 @@ class ImportService:
             "error_details": [e.model_dump() for e in error_details[:50]],
         }
 
+    async def _get_or_create_asset(self, symbol: str, org_id: UUID):
+        """Resolve a symbol to an asset, creating a bare one when unknown.
+
+        Bank/brokerage files routinely reference instruments that were never
+        registered by hand; silently dropping the link (or erroring the row)
+        makes imports look like they did nothing.
+        """
+        from app.modules.assets.repository import AssetRepository
+        from app.modules.assets.models import AssetType
+
+        asset_repo = AssetRepository(self.db)
+        asset = await asset_repo.get_by_symbol(symbol, org_id)
+        if asset:
+            return asset
+        asset = await asset_repo.create(
+            org_id=org_id,
+            symbol=symbol,
+            name=symbol,
+            asset_type=AssetType.EQUITY,
+            currency="USD",
+            metadata_={"auto_created": "import"},
+        )
+        log.info("import_auto_created_asset", symbol=symbol, org_id=str(org_id))
+        return asset
+
     async def _commit_transaction(self, row: dict, org_id: UUID, user_id: UUID) -> bool:
         from app.modules.transactions.repository import TransactionRepository
         from app.modules.transactions.models import TransactionType
-        from app.modules.assets.repository import AssetRepository
+        from app.modules.transactions.service import TransactionService
 
         tx_repo = TransactionRepository(self.db)
 
@@ -402,33 +481,35 @@ class ImportService:
 
         asset_id = None
         if row.get("asset_symbol"):
-            asset_repo = AssetRepository(self.db)
-            asset = await asset_repo.get_by_symbol(row["asset_symbol"], org_id)
-            if asset:
-                asset_id = asset.id
+            asset = await self._get_or_create_asset(row["asset_symbol"], org_id)
+            asset_id = asset.id
 
         gross = None
         if row.get("quantity") and row.get("price"):
             gross = row["quantity"] * row["price"]
         net = gross - (row.get("fees") or Decimal("0")) if gross else None
 
-        await tx_repo.create(
+        # Route through the service (not the repository) so BUY/SELL rows
+        # update holdings — otherwise imported data never shows up in
+        # dashboards, allocations, or portfolio values.
+        tx_svc = TransactionService(self.db)
+        await tx_svc.create_transaction(
             org_id=org_id,
-            created_by=user_id,
+            user_id=user_id,
             account_id=row["account_id"],
             portfolio_id=row["portfolio_id"],
-            asset_id=asset_id,
             transaction_type=TransactionType(row["transaction_type"]),
             trade_date=row["trade_date"],
+            external_id=row.get("external_id"),
+            asset_id=asset_id,
             quantity=row.get("quantity"),
             price=row.get("price"),
             gross_amount=gross,
             fees=row.get("fees") or Decimal("0"),
             net_amount=net,
             currency=row.get("currency", "USD"),
-            external_id=row.get("external_id"),
             notes=row.get("notes"),
-            metadata_={},
+            metadata={},
         )
         return True
 
@@ -436,10 +517,7 @@ class ImportService:
         from app.modules.holdings.repository import HoldingRepository
         from app.modules.assets.repository import AssetRepository
 
-        asset_repo = AssetRepository(self.db)
-        asset = await asset_repo.get_by_symbol(row["asset_symbol"], org_id)
-        if not asset:
-            raise ValueError(f"Asset '{row['asset_symbol']}' not found")
+        asset = await self._get_or_create_asset(row["asset_symbol"], org_id)
 
         holding_repo = HoldingRepository(self.db)
         existing = await holding_repo.get_by_unique(
@@ -463,9 +541,7 @@ class ImportService:
         from app.modules.assets.repository import AssetRepository
 
         asset_repo = AssetRepository(self.db)
-        asset = await asset_repo.get_by_symbol(row["symbol"], org_id)
-        if not asset:
-            raise ValueError(f"Asset '{row['symbol']}' not found")
+        asset = await self._get_or_create_asset(row["symbol"], org_id)
 
         await asset_repo.upsert_price(
             asset_id=asset.id,
