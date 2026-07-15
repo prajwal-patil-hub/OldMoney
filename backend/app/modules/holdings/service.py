@@ -8,7 +8,7 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import NotFoundError, ValidationError
 from app.modules.assets.models import Asset, AssetType
 from app.modules.assets.repository import AssetRepository
 from app.modules.holdings.models import Holding
@@ -57,6 +57,40 @@ class HoldingService:
         self.db = db
         self.repo = HoldingRepository(db)
 
+    async def _assert_org_owns(
+        self, org_id: UUID, portfolio_id: UUID, account_id: UUID, asset_id: UUID
+    ) -> None:
+        from app.modules.portfolios.models import Account, Portfolio
+
+        pf = await self.db.execute(
+            select(Portfolio.id).where(
+                Portfolio.id == portfolio_id,
+                Portfolio.org_id == org_id,
+                Portfolio.deleted_at.is_(None),
+            )
+        )
+        if pf.scalar_one_or_none() is None:
+            raise NotFoundError("Portfolio not found")
+
+        acct = await self.db.execute(
+            select(Account.portfolio_id).where(
+                Account.id == account_id, Account.org_id == org_id
+            )
+        )
+        acct_pf = acct.scalar_one_or_none()
+        if acct_pf is None:
+            raise NotFoundError("Account not found")
+        if acct_pf != portfolio_id:
+            raise ValidationError("Account does not belong to the given portfolio")
+
+        a = await self.db.execute(
+            select(Asset.id).where(
+                Asset.id == asset_id, Asset.org_id == org_id, Asset.deleted_at.is_(None)
+            )
+        )
+        if a.scalar_one_or_none() is None:
+            raise NotFoundError("Asset not found")
+
     async def upsert_holding(
         self,
         org_id: UUID,
@@ -68,6 +102,10 @@ class HoldingService:
         cost_basis: Decimal | None = None,
         cost_basis_per_unit: Decimal | None = None,
     ) -> HoldingOut:
+        # Cross-tenant IDOR guard: the portfolio, account, and asset must all
+        # belong to the caller's org before we write a holding.
+        await self._assert_org_owns(org_id, portfolio_id, account_id, asset_id)
+
         # Compute unrealized
         asset_repo = AssetRepository(self.db)
         latest_price = await asset_repo.get_latest_price(asset_id)

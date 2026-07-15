@@ -31,6 +31,10 @@ async def _set_sqlite_pragmas(dbapi_conn, connection_record):  # type: ignore[no
     dbapi_conn.execute("PRAGMA synchronous=NORMAL")
     dbapi_conn.execute("PRAGMA cache_size=-64000")  # 64MB
     dbapi_conn.execute("PRAGMA temp_store=MEMORY")
+    # Wait up to 5s for a competing writer instead of erroring immediately —
+    # StaticPool serializes writes, so under concurrency a busy_timeout turns
+    # "database is locked" 500s into short waits.
+    dbapi_conn.execute("PRAGMA busy_timeout=5000")
 
 
 if "sqlite" in settings.DATABASE_URL:
@@ -53,13 +57,12 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             yield session
             await session.commit()
         except Exception:
-            # Try to commit any pending state (e.g. failed login attempt counter)
-            # before rolling back — this allows audit-style writes to persist
-            # even when the request raises a domain error.
-            try:
-                await session.commit()
-            except Exception:
-                await session.rollback()
+            # Roll back unconditionally on error. A ledger must never persist
+            # a half-applied mutation (e.g. a transaction written but its
+            # holding update failed). Security state that must survive an
+            # error (the failed-login counter) is committed explicitly at its
+            # own call site, not piggy-backed on a commit-on-error here.
+            await session.rollback()
             raise
         finally:
             await session.close()

@@ -9,7 +9,7 @@ from uuid import UUID
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.modules.transactions.models import Transaction, TransactionType
 from app.modules.transactions.repository import TransactionRepository
 from app.modules.transactions.schemas import TransactionOut
@@ -46,6 +46,55 @@ class TransactionService:
         self.db = db
         self.repo = TransactionRepository(db)
 
+    async def _assert_org_owns(
+        self,
+        org_id: UUID,
+        portfolio_id: UUID,
+        account_id: UUID,
+        asset_id: UUID | None,
+    ) -> None:
+        """Reject client-supplied IDs that belong to another org (IDOR guard).
+
+        Every referenced entity must live in the caller's org before we write,
+        otherwise one tenant could inject records into another tenant's book.
+        """
+        from app.modules.portfolios.models import Account, Portfolio
+        from app.modules.assets.models import Asset
+        from sqlalchemy import select
+
+        pf = await self.db.execute(
+            select(Portfolio.id).where(
+                Portfolio.id == portfolio_id,
+                Portfolio.org_id == org_id,
+                Portfolio.deleted_at.is_(None),
+            )
+        )
+        if pf.scalar_one_or_none() is None:
+            raise NotFoundError("Portfolio not found")
+
+        acct = await self.db.execute(
+            select(Account.portfolio_id).where(
+                Account.id == account_id,
+                Account.org_id == org_id,
+            )
+        )
+        acct_pf = acct.scalar_one_or_none()
+        if acct_pf is None:
+            raise NotFoundError("Account not found")
+        if acct_pf != portfolio_id:
+            raise ValidationError("Account does not belong to the given portfolio")
+
+        if asset_id is not None:
+            a = await self.db.execute(
+                select(Asset.id).where(
+                    Asset.id == asset_id,
+                    Asset.org_id == org_id,
+                    Asset.deleted_at.is_(None),
+                )
+            )
+            if a.scalar_one_or_none() is None:
+                raise NotFoundError("Asset not found")
+
     async def create_transaction(
         self,
         org_id: UUID,
@@ -62,6 +111,9 @@ class TransactionService:
             existing = await self.repo.get_by_external_id(external_id, org_id)
             if existing:
                 raise ConflictError(f"Transaction with external_id '{external_id}' already exists")
+
+        # Cross-tenant IDOR guard on every client-supplied reference.
+        await self._assert_org_owns(org_id, portfolio_id, account_id, kwargs.get("asset_id"))
 
         metadata = kwargs.pop("metadata", {})
 
@@ -85,28 +137,92 @@ class TransactionService:
         return _tx_to_out(tx)
 
     async def _update_holding(self, tx: Transaction, org_id: UUID) -> None:
+        """Maintain a running position with average-cost basis, and record
+        realized P&L on sells.
+
+        A holding is a single carried-forward row per (account, asset):
+          BUY   → quantity += qty;  cost_basis += purchase cost
+          SELL  → quantity -= qty;  cost_basis -= (avg_cost × qty sold)
+                  realized P&L = proceeds − (avg_cost × qty sold), saved on the
+                  transaction's metadata for auditability.
+        Average cost is used (not FIFO lots) — the standard, deterministic
+        method for a consolidated position view.
+        """
+        from decimal import Decimal
         from app.modules.holdings.repository import HoldingRepository
-        from datetime import datetime, UTC
 
         holding_repo = HoldingRepository(self.db)
-        existing = await holding_repo.get_by_unique(tx.account_id, tx.asset_id, tx.trade_date)
+        position = await holding_repo.get_current_position(tx.account_id, tx.asset_id)
 
-        quantity_delta = tx.quantity if tx.transaction_type == TransactionType.BUY else -tx.quantity
+        qty = tx.quantity or Decimal("0")
+        # Cost of this trade: prefer the settled net_amount, else quantity×price.
+        trade_cost = tx.net_amount
+        if trade_cost is None and tx.price is not None:
+            trade_cost = qty * tx.price
+        trade_cost = trade_cost or Decimal("0")
 
-        if existing:
-            new_quantity = existing.quantity + quantity_delta
-            await holding_repo.update(existing, quantity=new_quantity)
-        else:
+        if tx.transaction_type == TransactionType.BUY:
+            if position:
+                new_qty = position.quantity + qty
+                new_cost = (position.cost_basis or Decimal("0")) + trade_cost
+                await holding_repo.update(
+                    position,
+                    quantity=new_qty,
+                    cost_basis=new_cost,
+                    cost_basis_per_unit=(new_cost / new_qty) if new_qty > 0 else None,
+                    as_of_date=tx.trade_date,
+                )
+            else:
+                await holding_repo.upsert(
+                    org_id=org_id,
+                    account_id=tx.account_id,
+                    portfolio_id=tx.portfolio_id,
+                    asset_id=tx.asset_id,
+                    as_of_date=tx.trade_date,
+                    quantity=qty,
+                    cost_basis=trade_cost,
+                    cost_basis_per_unit=(trade_cost / qty) if qty > 0 else None,
+                )
+            return
+
+        # SELL
+        if not position or position.quantity <= 0:
+            # Selling with no recorded position — record a zero/short position
+            # rather than a positive-cost negative-quantity row.
             await holding_repo.upsert(
                 org_id=org_id,
                 account_id=tx.account_id,
                 portfolio_id=tx.portfolio_id,
                 asset_id=tx.asset_id,
                 as_of_date=tx.trade_date,
-                quantity=quantity_delta,
-                cost_basis=tx.net_amount,
-                cost_basis_per_unit=tx.price,
+                quantity=(position.quantity if position else Decimal("0")) - qty,
+                cost_basis=Decimal("0"),
+                cost_basis_per_unit=None,
             )
+            return
+
+        avg_cost = (position.cost_basis or Decimal("0")) / position.quantity
+        sold_qty = min(qty, position.quantity)
+        cost_removed = (avg_cost * sold_qty).quantize(Decimal("0.0001"))
+        realized = (trade_cost - cost_removed).quantize(Decimal("0.01"))
+
+        new_qty = position.quantity - qty
+        new_cost = (position.cost_basis or Decimal("0")) - cost_removed
+        if new_cost < 0:
+            new_cost = Decimal("0")
+        await holding_repo.update(
+            position,
+            quantity=new_qty,
+            cost_basis=new_cost,
+            cost_basis_per_unit=(new_cost / new_qty) if new_qty > 0 else None,
+            as_of_date=tx.trade_date,
+        )
+
+        # Persist realized P&L on the transaction for the audit trail.
+        meta = dict(tx.metadata_ or {})
+        meta["realized_pnl"] = str(realized)
+        tx.metadata_ = meta
+        await self.db.flush()
 
     async def list_transactions(
         self,

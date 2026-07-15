@@ -1,7 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from collections.abc import AsyncGenerator
+
+# Set a strong, non-default signing key BEFORE app config is imported —
+# production now hard-fails on the known-weak default when DEBUG is off.
+os.environ.setdefault("SECRET_KEY", "test-secret-key-strong-enough-32chars-min-0123456789")
 
 import pytest
 import pytest_asyncio

@@ -9,6 +9,11 @@ export const APP_TAGLINE = 'Wealth Intelligence, Refined'
 // Do NOT set this to an absolute URL; keep it empty so the Next.js rewrite handles routing.
 export const API_BASE_URL = ''
 
+// Demo login forges a client-only session with no backend auth. It is a
+// local-testing convenience and MUST stay off in any real deployment. Opt in
+// explicitly with NEXT_PUBLIC_ALLOW_DEMO=true; default (and production) is off.
+export const ALLOW_DEMO_LOGIN = process.env.NEXT_PUBLIC_ALLOW_DEMO === 'true'
+
 export const ASSET_TYPE_LABELS: Record<AssetType, string> = {
   EQUITY: 'Equity',
   ETF: 'ETF',

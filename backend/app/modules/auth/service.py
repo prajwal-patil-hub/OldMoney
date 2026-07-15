@@ -94,7 +94,11 @@ class AuthService:
                 from datetime import timedelta
                 user.locked_until = now + timedelta(minutes=settings.LOCKOUT_MINUTES)
                 log.warning("account_locked", user_id=str(user.id), email=email)
-            await self.db.flush()
+            # Commit the brute-force counter/lockout NOW: it is security state
+            # that must survive even though this request ends in an error. The
+            # request-level session no longer commits-on-error (that could
+            # persist partial domain writes), so persist it explicitly here.
+            await self.db.commit()
             raise AuthenticationError("Invalid email or password")
 
         # Successful login

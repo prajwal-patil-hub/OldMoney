@@ -37,6 +37,28 @@ class HoldingRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_current_position(
+        self, account_id: UUID, asset_id: UUID
+    ) -> Holding | None:
+        """The single live position row for an (account, asset) pair.
+
+        Holdings model a *running* position (one row per instrument that
+        carries forward), not per-trade-date snapshots, so there is at most
+        one live row per pair. Returns the most recent if legacy data left
+        several behind.
+        """
+        result = await self.db.execute(
+            select(Holding)
+            .where(
+                Holding.account_id == account_id,
+                Holding.asset_id == asset_id,
+                Holding.deleted_at.is_(None),
+            )
+            .order_by(Holding.as_of_date.desc())
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
+
     async def list(
         self,
         org_id: UUID,

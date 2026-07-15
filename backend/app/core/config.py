@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _KNOWN_WEAK_KEYS = {
@@ -27,14 +27,31 @@ class Settings(BaseSettings):
     def validate_secret_key(cls, v: str) -> str:
         if len(v) < 32:
             raise ValueError("SECRET_KEY must be at least 32 characters")
-        if v in _KNOWN_WEAK_KEYS:
-            import warnings
-            warnings.warn(
-                "SECRET_KEY is using a known insecure default. "
-                "Set a strong SECRET_KEY in your environment before exposing this service.",
-                stacklevel=2,
-            )
         return v
+
+    @model_validator(mode="after")
+    def enforce_strong_secret_outside_debug(self) -> "Settings":
+        """A known-weak signing key must NEVER boot a non-debug process.
+
+        With DEBUG on (local dev) we only warn so the app still runs; with
+        DEBUG off we hard-fail, because a publicly-known key lets anyone forge
+        access tokens for any user/org/role.
+        """
+        if self.SECRET_KEY in _KNOWN_WEAK_KEYS:
+            if self.DEBUG:
+                import warnings
+                warnings.warn(
+                    "SECRET_KEY is a known insecure default. Set a strong "
+                    "SECRET_KEY before exposing this service.",
+                    stacklevel=2,
+                )
+            else:
+                raise ValueError(
+                    "SECRET_KEY is a known insecure default and DEBUG is off. "
+                    "Set a strong, unique SECRET_KEY (>=32 chars) via the "
+                    "environment before starting in production."
+                )
+        return self
 
     # Database
     DATABASE_URL: str = "sqlite+aiosqlite:///./data/oldmoney.db"

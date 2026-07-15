@@ -11,6 +11,7 @@ import { useAuthStore } from '@/store/auth.store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { ALLOW_DEMO_LOGIN } from '@/lib/constants'
 import type { LoginApiResponse, OrgApiResponse } from '@/types/api'
 
 interface ApiErrorDetail {
@@ -291,21 +292,25 @@ export default function LoginPage() {
           Sign in
         </Button>
 
-        {/* Demo mode */}
-        <div className="relative flex items-center gap-3 py-1">
-          <div className="flex-1 h-px bg-border" />
-          <span className="text-xs text-text-muted">or</span>
-          <div className="flex-1 h-px bg-border" />
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          onClick={handleDemoLogin}
-          disabled={isLoading}
-        >
-          Continue as Demo
-        </Button>
+        {/* Demo mode — only rendered when explicitly enabled (never in prod) */}
+        {ALLOW_DEMO_LOGIN && (
+          <>
+            <div className="relative flex items-center gap-3 py-1">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs text-text-muted">or</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={handleDemoLogin}
+              disabled={isLoading}
+            >
+              Continue as Demo
+            </Button>
+          </>
+        )}
       </form>
 
       {/* Register link */}
