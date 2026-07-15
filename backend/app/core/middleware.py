@@ -132,8 +132,11 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
                 org_id=org_id,
                 ip=_extract_ip(request),
             )
-        except Exception:
-            pass  # Never let audit logging crash a request
+        except Exception as exc:
+            # Never let audit logging crash a request — but never lose it
+            # silently either. Emit at error level so lost audit records for a
+            # financial app are visible to monitoring.
+            log.error("audit_log_failed", error=str(exc), path=request.url.path)
 
         return response
 

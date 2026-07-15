@@ -4,7 +4,7 @@ from typing import Any
 from uuid import UUID
 
 import structlog
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 log = structlog.get_logger(__name__)
@@ -136,6 +136,57 @@ class SearchService:
             ),
             {"et": entity_type, "eid": entity_id},
         )
+
+    async def rebuild_index(self) -> int:
+        """Rebuild the whole FTS index from the source tables.
+
+        Keeps search consistent even if an incremental index_entity call was
+        missed. Returns the number of rows indexed.
+        """
+        from app.modules.assets.models import Asset
+        from app.modules.portfolios.models import Portfolio
+        from app.modules.transactions.models import Transaction
+
+        await self.db.execute(text("DELETE FROM search_index"))
+        count = 0
+
+        portfolios = (
+            await self.db.execute(
+                select(Portfolio).where(Portfolio.deleted_at.is_(None))
+            )
+        ).scalars().all()
+        for p in portfolios:
+            await self.index_entity(
+                "portfolio", str(p.id), str(p.org_id), p.name, p.description or ""
+            )
+            count += 1
+
+        assets = (
+            await self.db.execute(select(Asset).where(Asset.deleted_at.is_(None)))
+        ).scalars().all()
+        for a in assets:
+            await self.index_entity(
+                "asset", str(a.id), str(a.org_id), f"{a.symbol} {a.name}", a.sector or ""
+            )
+            count += 1
+
+        transactions = (
+            await self.db.execute(
+                select(Transaction).where(Transaction.deleted_at.is_(None))
+            )
+        ).scalars().all()
+        for t in transactions:
+            await self.index_entity(
+                "transaction",
+                str(t.id),
+                str(t.org_id),
+                t.transaction_type.value,
+                t.notes or "",
+            )
+            count += 1
+
+        await self.db.commit()
+        return count
 
     @staticmethod
     def _build_fts_query(query: str) -> str:

@@ -75,10 +75,11 @@ class AssetService:
             offset=offset,
             limit=page_size,
         )
+        # Batch latest prices for the whole page instead of one query per asset.
+        prices_by_id = await self.repo.get_latest_price_rows([a.id for a in assets])
         result = []
         for a in assets:
-            latest = await self.repo.get_latest_price(a.id)
-            result.append(_asset_to_out(a, latest))
+            result.append(_asset_to_out(a, prices_by_id.get(a.id)))
         return result, total
 
     async def get_asset(self, asset_id: UUID, org_id: UUID) -> AssetOut:

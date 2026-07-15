@@ -1,14 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { ImportWizard } from '@/components/forms/ImportWizard'
-import { useRouter } from 'next/navigation'
+import { ImportWizard, type ImportOutcome } from '@/components/forms/ImportWizard'
+import { formatRelativeTime } from '@/lib/utils'
 
 interface ImportRecord {
   id: string
@@ -21,14 +21,45 @@ interface ImportRecord {
   status: 'completed' | 'failed'
 }
 
+const HISTORY_KEY = 'oldmoney-import-history'
+
 export default function ImportsPage() {
-  const router = useRouter()
   const [wizardOpen, setWizardOpen] = useState(false)
   const [history, setHistory] = useState<ImportRecord[]>([])
 
-  function handleComplete() {
+  // The backend has no import-jobs table; persist a lightweight local history
+  // so a completed import survives page refreshes.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(HISTORY_KEY)
+      if (raw) setHistory(JSON.parse(raw))
+    } catch {
+      // ignore malformed/absent history
+    }
+  }, [])
+
+  function handleComplete(outcome?: ImportOutcome) {
     setWizardOpen(false)
-    router.push('/transactions')
+    if (!outcome) return
+    const record: ImportRecord = {
+      id: `${Date.now()}`,
+      file_name: outcome.file_name,
+      target: outcome.target,
+      imported: outcome.imported,
+      skipped: outcome.skipped,
+      errors: outcome.errors,
+      completed_at: new Date().toISOString(),
+      status: outcome.errors > 0 && outcome.imported === 0 ? 'failed' : 'completed',
+    }
+    setHistory((prev) => {
+      const next = [record, ...prev].slice(0, 25)
+      try {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(next))
+      } catch {
+        // storage full / unavailable — history stays in-memory only
+      }
+      return next
+    })
   }
 
   const statusIcon = (status: string) => {
@@ -103,6 +134,9 @@ export default function ImportsPage() {
                         {job.imported} imported
                         {job.skipped > 0 && `, ${job.skipped} skipped`}
                         {job.errors > 0 && `, ${job.errors} errors`}
+                      </span>
+                      <span className="text-xs text-text-muted">
+                        {formatRelativeTime(job.completed_at)}
                       </span>
                     </div>
                   </div>

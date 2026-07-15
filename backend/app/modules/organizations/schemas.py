@@ -2,17 +2,21 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
 
 from app.modules.organizations.models import MemberRole
 
+# Allowed billing plans — reject arbitrary free-text plan values.
+OrgPlan = Literal["free", "pro", "enterprise"]
+
 
 class CreateOrgRequest(BaseModel):
     name: str = Field(min_length=2, max_length=255)
     slug: str | None = Field(default=None, min_length=2, max_length=100)
-    plan: str = "free"
+    plan: OrgPlan = "free"
     settings: dict = {}
 
     @field_validator("slug", mode="before")
@@ -27,7 +31,7 @@ class CreateOrgRequest(BaseModel):
 
 class UpdateOrgRequest(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=255)
-    plan: str | None = None
+    plan: OrgPlan | None = None
     is_active: bool | None = None
     settings: dict | None = None
 

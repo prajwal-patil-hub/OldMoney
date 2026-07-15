@@ -26,7 +26,19 @@ const TARGET_OPTIONS = [
   { value: 'prices', label: 'Prices' },
 ]
 
-export function ImportWizard({ onComplete }: { onComplete?: () => void }) {
+export interface ImportOutcome {
+  file_name: string
+  target: string
+  imported: number
+  skipped: number
+  errors: number
+}
+
+export function ImportWizard({
+  onComplete,
+}: {
+  onComplete?: (outcome?: ImportOutcome) => void
+}) {
   const [step, setStep] = useState<WizardStep>('upload')
   const [file, setFile] = useState<File | null>(null)
   const [target, setTarget] = useState('transactions')
@@ -97,7 +109,13 @@ export function ImportWizard({ onComplete }: { onComplete?: () => void }) {
       setCommitResult(result)
       setStep('done')
       toast.success(`Imported ${result.imported} rows successfully`)
-      onComplete?.()
+      onComplete?.({
+        file_name: file.name,
+        target,
+        imported: result.imported,
+        skipped: result.skipped,
+        errors: result.errors,
+      })
     } catch {
       toast.error('Import failed. Please try again.')
     }
@@ -385,7 +403,7 @@ export function ImportWizard({ onComplete }: { onComplete?: () => void }) {
                   <Badge variant="danger">{commitResult.errors} errors</Badge>
                 )}
               </div>
-              <Button onClick={onComplete}>View Results</Button>
+              <Button onClick={() => onComplete?.()}>Done</Button>
             </div>
           )}
         </motion.div>

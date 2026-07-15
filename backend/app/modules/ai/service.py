@@ -238,7 +238,11 @@ class AIService:
             )
         except Exception as e:
             log.error("ai_chat_failed", error=str(e))
-            ai_response_content = f"I encountered an error: {e}"
+            # Don't leak internal error text (provider URLs, stack detail) to
+            # the end user; keep the specifics in the server log.
+            ai_response_content = (
+                "The AI assistant is temporarily unavailable. Please try again."
+            )
             tool_calls = []
             token_count = None
             latency_ms = round((time.perf_counter() - start) * 1000)
@@ -323,7 +327,8 @@ class AIService:
                 full_content += chunk
                 yield f"data: {json.dumps({'chunk': chunk})}\n\n"
         except Exception as e:
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            log.error("ai_stream_failed", error=str(e))
+            yield f"data: {json.dumps({'error': 'The AI assistant is temporarily unavailable.'})}\n\n"
 
         # Save response
         assistant_msg = AIMessage(

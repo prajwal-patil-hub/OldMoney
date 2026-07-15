@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import api, { orgApi } from '@/lib/api'
+import { mapBackendRole, TO_BACKEND_ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/store/auth.store'
 import { useUIStore } from '@/store/ui.store'
 import { Button } from '@/components/ui/button'
@@ -45,25 +46,6 @@ const ROLE_LABELS: Record<Role, string> = {
   admin: 'Admin',
   member: 'Member',
   viewer: 'Viewer',
-}
-
-// The backend uses a different role vocabulary (SUPERADMIN/ORG_ADMIN/ADVISOR/
-// ANALYST/CLIENT/VIEWER) than the UI's owner/admin/member/viewer. Translate at
-// the boundary in both directions.
-const FROM_BACKEND_ROLE: Record<string, Role> = {
-  SUPERADMIN: 'owner',
-  ORG_ADMIN: 'admin',
-  ADVISOR: 'member',
-  ANALYST: 'member',
-  CLIENT: 'viewer',
-  VIEWER: 'viewer',
-}
-
-const TO_BACKEND_ROLE: Record<Role, string> = {
-  owner: 'SUPERADMIN',
-  admin: 'ORG_ADMIN',
-  member: 'ANALYST',
-  viewer: 'VIEWER',
 }
 
 type TabId = 'organization' | 'members' | 'account' | 'security' | 'appearance'
@@ -208,7 +190,7 @@ function MembersTab() {
             created_at: String(m.created_at ?? ''),
             updated_at: String(m.created_at ?? ''),
           },
-          role: FROM_BACKEND_ROLE[String(m.role)] ?? 'viewer',
+          role: mapBackendRole(String(m.role)),
           invited_at: String(m.created_at ?? ''),
           joined_at: String(m.created_at ?? ''),
         }))

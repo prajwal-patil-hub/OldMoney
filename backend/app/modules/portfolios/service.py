@@ -235,14 +235,17 @@ class PortfolioService:
         allocation: dict[str, Decimal] = {}
         num_holdings = len(rows)
 
+        # Batch every latest price in one query instead of one per holding.
+        from app.modules.assets.repository import AssetRepository
+        prices_by_id = await AssetRepository(self.db).get_latest_prices(
+            list({asset.id for _h, asset in rows})
+        )
+
         for holding, asset in rows:
             # Use latest price if available, else cost basis
-            from app.modules.assets.repository import AssetRepository
-            asset_repo = AssetRepository(self.db)
-            latest_price = await asset_repo.get_latest_price(asset.id)
-
-            if latest_price and holding.quantity:
-                current_value = Decimal(str(holding.quantity)) * latest_price.close
+            close = prices_by_id.get(asset.id)
+            if close is not None and holding.quantity:
+                current_value = Decimal(str(holding.quantity)) * close
             elif holding.cost_basis:
                 current_value = Decimal(str(holding.cost_basis))
             else:

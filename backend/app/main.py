@@ -78,8 +78,18 @@ async def lifespan(app: FastAPI):
     scheduler = AsyncIOScheduler()
 
     async def rebuild_search_index():
-        """Periodic job to rebuild search index."""
+        """Periodic job: rebuild the FTS index from source tables so search
+        stays consistent even if an incremental update was missed."""
+        from app.core.database import AsyncSessionLocal
+        from app.modules.search.service import SearchService
+
         log.info("search_index_rebuild_started")
+        try:
+            async with AsyncSessionLocal() as session:
+                count = await SearchService(session).rebuild_index()
+            log.info("search_index_rebuild_complete", rows=count)
+        except Exception as exc:
+            log.error("search_index_rebuild_failed", error=str(exc))
 
     scheduler.add_job(rebuild_search_index, "interval", hours=1, id="rebuild_search")
     scheduler.start()

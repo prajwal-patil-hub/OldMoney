@@ -96,6 +96,57 @@ class AssetRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_latest_prices(self, asset_ids: list[UUID]) -> dict[UUID, Decimal]:
+        """Latest close per asset for a batch of ids, in a single query.
+
+        Avoids the N+1 of calling get_latest_price() per holding in summary /
+        list endpoints.
+        """
+        if not asset_ids:
+            return {}
+        # Most-recent price_date per asset...
+        latest_dates = (
+            select(
+                AssetPrice.asset_id.label("aid"),
+                func.max(AssetPrice.price_date).label("mx"),
+            )
+            .where(AssetPrice.asset_id.in_(asset_ids))
+            .group_by(AssetPrice.asset_id)
+            .subquery()
+        )
+        # ...joined back to fetch that row's close.
+        rows = await self.db.execute(
+            select(AssetPrice.asset_id, AssetPrice.close).join(
+                latest_dates,
+                (AssetPrice.asset_id == latest_dates.c.aid)
+                & (AssetPrice.price_date == latest_dates.c.mx),
+            )
+        )
+        return {aid: close for aid, close in rows.all()}
+
+    async def get_latest_price_rows(self, asset_ids: list[UUID]) -> dict[UUID, AssetPrice]:
+        """Full latest AssetPrice row per asset, in one query (for list views
+        that serialize the whole price)."""
+        if not asset_ids:
+            return {}
+        latest_dates = (
+            select(
+                AssetPrice.asset_id.label("aid"),
+                func.max(AssetPrice.price_date).label("mx"),
+            )
+            .where(AssetPrice.asset_id.in_(asset_ids))
+            .group_by(AssetPrice.asset_id)
+            .subquery()
+        )
+        rows = await self.db.execute(
+            select(AssetPrice).join(
+                latest_dates,
+                (AssetPrice.asset_id == latest_dates.c.aid)
+                & (AssetPrice.price_date == latest_dates.c.mx),
+            )
+        )
+        return {p.asset_id: p for p in rows.scalars().all()}
+
     async def get_price_history(
         self,
         asset_id: UUID,

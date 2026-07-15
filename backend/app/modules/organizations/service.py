@@ -133,12 +133,14 @@ class OrganizationService:
     async def list_members(self, org_id: UUID, user_id: UUID) -> list[MemberOut]:
         await self._assert_member(user_id, org_id)
         memberships = await self.member_repo.list_for_org(org_id)
+        # Batch the user lookups into one IN query instead of one per member.
+        user_ids = list({m.user_id for m in memberships})
+        users_result = await self.db.execute(select(User).where(User.id.in_(user_ids)))
+        users_by_id = {u.id: u for u in users_result.scalars().all()}
+
         result = []
         for m in memberships:
-            user_result = await self.db.execute(
-                select(User).where(User.id == m.user_id)
-            )
-            u = user_result.scalar_one_or_none()
+            u = users_by_id.get(m.user_id)
             result.append(
                 MemberOut(
                     id=m.id,

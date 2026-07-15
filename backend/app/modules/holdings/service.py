@@ -178,11 +178,17 @@ class HoldingService:
             limit=10000,
         )
         asset_repo = AssetRepository(self.db)
-        summaries: dict[str, dict] = {}
 
+        # Batch-fetch every referenced asset and its latest price up front —
+        # avoids the previous 2 queries per holding (2N+1 at up to 10k rows).
+        asset_ids = list({h.asset_id for h in holdings})
+        assets_result = await self.db.execute(select(Asset).where(Asset.id.in_(asset_ids)))
+        assets_by_id = {a.id: a for a in assets_result.scalars().all()}
+        prices_by_id = await asset_repo.get_latest_prices(asset_ids)
+
+        summaries: dict[str, dict] = {}
         for h in holdings:
-            asset_result = await self.db.execute(select(Asset).where(Asset.id == h.asset_id))
-            asset = asset_result.scalar_one_or_none()
+            asset = assets_by_id.get(h.asset_id)
             if not asset:
                 continue
             at = asset.asset_type.value
@@ -201,8 +207,8 @@ class HoldingService:
             s["total_unrealized_gain_loss"] += Decimal(str(h.unrealized_gain_loss or 0))
             s["num_holdings"] += 1
 
-            latest = await asset_repo.get_latest_price(h.asset_id)
-            if latest and h.quantity is not None:
-                s["total_current_value"] += Decimal(str(h.quantity)) * latest.close
+            close = prices_by_id.get(h.asset_id)
+            if close is not None and h.quantity is not None:
+                s["total_current_value"] += Decimal(str(h.quantity)) * close
 
         return [AssetTypeSummary(**v) for v in summaries.values()]
