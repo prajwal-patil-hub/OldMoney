@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.rate_limit import limiter, WRITE_LIMIT
 from app.modules.search.service import SearchService
 from app.shared.deps import get_current_user, get_token_payload
 from app.shared.responses import success
@@ -23,6 +24,7 @@ def _get_org_id(request: Request) -> UUID:
 
 
 @router.get("", response_model=dict)
+@limiter.limit(WRITE_LIMIT)
 async def search(
     request: Request,
     q: str = Query(min_length=1, max_length=200),

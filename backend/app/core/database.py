@@ -15,6 +15,9 @@ if "sqlite" in settings.DATABASE_URL:
     _connect_args = {"check_same_thread": False}
     # WAL mode pragma will be applied via event
     _pool_kwargs = {"poolclass": StaticPool}
+else:
+    # Server databases (e.g. Postgres) honour the configured pool size.
+    _pool_kwargs = {"pool_size": settings.DATABASE_POOL_SIZE, "pool_pre_ping": True}
 
 engine = create_async_engine(
     settings.DATABASE_URL,

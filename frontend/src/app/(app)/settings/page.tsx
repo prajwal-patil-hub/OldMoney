@@ -606,6 +606,23 @@ function AccountTab() {
 // ─── Security tab ─────────────────────────────────────────────────────────────
 
 function SecurityTab() {
+  const clearAuth = useAuthStore((s) => s.clearAuth)
+  const [signingOut, setSigningOut] = useState(false)
+
+  async function handleSignOutAll() {
+    setSigningOut(true)
+    try {
+      await api.post('/auth/logout-all')
+      toast.success('Signed out of all sessions')
+      clearAuth()
+      window.location.href = '/login'
+    } catch {
+      toast.error('Failed to sign out of all sessions')
+    } finally {
+      setSigningOut(false)
+    }
+  }
+
   return (
     <div>
       <SectionHeading title="Security" description="Manage your active sessions and access" />
@@ -625,19 +642,9 @@ function SecurityTab() {
           </p>
         </div>
 
-        <Button variant="secondary" size="sm" onClick={() => toast.info('Sign out all sessions coming soon')}>
+        <Button variant="secondary" size="sm" onClick={handleSignOutAll} loading={signingOut}>
           Sign out all other devices
         </Button>
-
-        <div className="border-t border-border pt-4 space-y-3">
-          <p className="text-xs text-text-muted uppercase tracking-wider font-medium">Coming soon</p>
-          {['API Keys', 'Audit Log'].map((item) => (
-            <div key={item} className="flex items-center gap-2">
-              <div className="size-1.5 rounded-full bg-border" aria-hidden="true" />
-              <p className="text-sm text-text-muted">{item}</p>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   )

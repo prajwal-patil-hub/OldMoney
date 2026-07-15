@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.modules.imports.service import ImportService
 from app.shared.deps import get_current_user, get_token_payload
+from app.core.rate_limit import limiter, BULK_LIMIT
 from app.shared.responses import success
 
 router = APIRouter(prefix="/imports", tags=["imports"])
@@ -92,6 +93,7 @@ def _parse_portfolio_id(raw: str | None) -> "UUID | None":
 
 
 @router.post("/preview", response_model=dict)
+@limiter.limit(BULK_LIMIT)
 async def preview_import(
     request: Request,
     file: UploadFile = File(...),
@@ -120,6 +122,7 @@ async def preview_import(
 
 
 @router.post("/commit", response_model=dict)
+@limiter.limit(BULK_LIMIT)
 async def commit_import(
     request: Request,
     file: UploadFile = File(...),

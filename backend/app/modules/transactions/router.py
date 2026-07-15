@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.rate_limit import limiter, BULK_LIMIT, WRITE_LIMIT
 from app.modules.transactions.models import TransactionType
 from app.modules.transactions.schemas import CreateTransactionRequest, UpdateTransactionRequest
 from app.modules.transactions.service import TransactionService
@@ -28,6 +29,7 @@ def _get_org_id(request: Request) -> UUID:
 
 
 @router.get("/export", response_class=StreamingResponse)
+@limiter.limit(BULK_LIMIT)
 async def export_transactions(
     request: Request,
     portfolio_id: UUID | None = Query(default=None),
@@ -51,6 +53,7 @@ async def export_transactions(
 
 
 @router.post("", response_model=dict, status_code=201)
+@limiter.limit(WRITE_LIMIT)
 async def create_transaction(
     body: CreateTransactionRequest,
     request: Request,

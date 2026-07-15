@@ -76,9 +76,8 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
-    # Rate limiting
+    # Rate limiting (applied as the global default limit in app.core.rate_limit)
     RATE_LIMIT_PER_MINUTE: int = 60
-    AUTH_RATE_LIMIT_PER_MINUTE: int = 10
 
     # Upload limits
     MAX_UPLOAD_SIZE_MB: int = 10          # hard cap for import files
@@ -88,6 +87,12 @@ class Settings(BaseSettings):
     AI_MAX_MESSAGE_LENGTH: int = 8000     # chars before sending to LLM
     AI_MAX_CONVERSATIONS: int = 500       # per user
     AI_MAX_MESSAGES_PER_CONV: int = 200   # turns per conversation
+
+    # AI provider tuning (were hardcoded magic numbers in provider.py)
+    AI_TEMPERATURE: float = 0.7
+    AI_REQUEST_TIMEOUT: float = 120.0     # chat/generate calls
+    AI_EMBED_TIMEOUT: float = 60.0        # embedding calls
+    AI_HEALTH_TIMEOUT: float = 5.0        # health check
 
 
 settings = Settings()

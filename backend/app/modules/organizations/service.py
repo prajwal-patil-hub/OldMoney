@@ -28,7 +28,10 @@ def _slugify(name: str) -> str:
     slug = name.lower()
     slug = re.sub(r"[^a-z0-9\s-]", "", slug)
     slug = re.sub(r"[\s-]+", "-", slug).strip("-")
-    return slug[:100]
+    slug = slug[:100]
+    # An all-symbol name (e.g. "!!!") slugifies to empty; fall back to a stable
+    # prefix so the uniqueness suffix has something to attach to.
+    return slug or "org"
 
 
 class OrganizationService:

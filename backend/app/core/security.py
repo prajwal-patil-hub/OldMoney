@@ -20,6 +20,10 @@ ph = PasswordHasher(
 )
 
 ALGORITHM = "HS256"
+# Issuer/audience claims scope tokens to this service so a token minted for a
+# different app (sharing a key by mistake) can't be replayed here.
+JWT_ISSUER = "oldmoney"
+JWT_AUDIENCE = "oldmoney-api"
 
 
 def hash_password(password: str) -> str:
@@ -52,6 +56,8 @@ def create_access_token(
         "jti": jti or secrets.token_hex(16),
         "iat": now,
         "exp": expire,
+        "iss": JWT_ISSUER,
+        "aud": JWT_AUDIENCE,
         "type": "access",
     }
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=ALGORITHM)
@@ -64,7 +70,13 @@ def decode_access_token(token: str) -> dict:
     to avoid leaking validation details to callers.
     """
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[ALGORITHM],
+            audience=JWT_AUDIENCE,
+            issuer=JWT_ISSUER,
+        )
     except JWTError:
         raise JWTError("Token validation failed")
     if payload.get("type") != "access":

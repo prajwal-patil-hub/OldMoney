@@ -8,7 +8,6 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.middleware import SlowAPIMiddleware
 
 from app.core.rate_limit import limiter
 
@@ -126,7 +125,6 @@ app.add_exception_handler(Exception, unhandled_exception_handler)
 # Execution order on request:  CORS → SecurityHeaders → RequestID → BodySizeLimit → AuditLog → route
 # Execution order on response: route → AuditLog → BodySizeLimit → RequestID → SecurityHeaders → CORS
 # CORS must be outermost so it handles OPTIONS preflight before any other middleware runs
-app.add_middleware(SlowAPIMiddleware)  # enforces default_limits on every route
 app.add_middleware(AuditLogMiddleware)
 app.add_middleware(
     BodySizeLimitMiddleware,

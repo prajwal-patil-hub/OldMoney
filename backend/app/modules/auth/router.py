@@ -88,6 +88,18 @@ async def logout(
     return success({"message": "Logged out successfully"})
 
 
+@router.post("/logout-all", response_model=dict)
+async def logout_all(
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Sign out of every device: revoke all refresh tokens and invalidate all
+    outstanding access tokens for the current user."""
+    svc = AuthService(db)
+    await svc.logout_all(current_user.id)
+    return success({"message": "Signed out of all sessions"})
+
+
 @router.get("/me", response_model=dict)
 async def get_me(
     db: AsyncSession = Depends(get_db),

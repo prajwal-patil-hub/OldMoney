@@ -83,12 +83,12 @@ class OllamaProvider(AIProvider):
             "model": self.model,
             "messages": [m.to_dict() for m in messages],
             "stream": False,
-            "options": {"temperature": 0.7},
+            "options": {"temperature": settings.AI_TEMPERATURE},
         }
         if tools:
             payload["tools"] = tools
 
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=settings.AI_REQUEST_TIMEOUT) as client:
             resp = await client.post(f"{self.base_url}/api/chat", json=payload)
             resp.raise_for_status()
             data = resp.json()
@@ -115,7 +115,7 @@ class OllamaProvider(AIProvider):
         if tools:
             payload["tools"] = tools
 
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=settings.AI_REQUEST_TIMEOUT) as client:
             async with client.stream("POST", f"{self.base_url}/api/chat", json=payload) as resp:
                 resp.raise_for_status()
                 async for line in resp.aiter_lines():
@@ -134,7 +134,7 @@ class OllamaProvider(AIProvider):
 
     async def embed(self, texts: list[str]) -> list[list[float]]:
         results = []
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=settings.AI_EMBED_TIMEOUT) as client:
             for text in texts:
                 resp = await client.post(
                     f"{self.base_url}/api/embeddings",
@@ -148,7 +148,7 @@ class OllamaProvider(AIProvider):
     async def health_check(self) -> tuple[bool, int | None]:
         start = time.perf_counter()
         try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
+            async with httpx.AsyncClient(timeout=settings.AI_HEALTH_TIMEOUT) as client:
                 resp = await client.get(f"{self.base_url}/api/tags")
                 resp.raise_for_status()
             latency_ms = round((time.perf_counter() - start) * 1000)
@@ -194,7 +194,7 @@ class OpenAICompatibleProvider(AIProvider):
         if tools:
             payload["tools"] = tools
 
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=settings.AI_REQUEST_TIMEOUT) as client:
             resp = await client.post(
                 f"{self.base_url}/chat/completions",
                 json=payload,
@@ -230,7 +230,7 @@ class OpenAICompatibleProvider(AIProvider):
         if tools:
             payload["tools"] = tools
 
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=settings.AI_REQUEST_TIMEOUT) as client:
             async with client.stream(
                 "POST",
                 f"{self.base_url}/chat/completions",
@@ -254,7 +254,7 @@ class OpenAICompatibleProvider(AIProvider):
                         continue
 
     async def embed(self, texts: list[str]) -> list[list[float]]:
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=settings.AI_EMBED_TIMEOUT) as client:
             resp = await client.post(
                 f"{self.base_url}/embeddings",
                 json={"model": self.embed_model, "input": texts},
@@ -267,7 +267,7 @@ class OpenAICompatibleProvider(AIProvider):
     async def health_check(self) -> tuple[bool, int | None]:
         start = time.perf_counter()
         try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
+            async with httpx.AsyncClient(timeout=settings.AI_HEALTH_TIMEOUT) as client:
                 resp = await client.get(
                     f"{self.base_url}/models",
                     headers=self._headers(),

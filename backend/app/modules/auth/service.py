@@ -168,6 +168,17 @@ class AuthService:
         if token and token.revoked_at is None:
             await self.token_repo.revoke(token)
 
+    async def logout_all(self, user_id: UUID) -> None:
+        """Revoke every refresh token and invalidate all outstanding access
+        tokens (via the session cutoff) for a user."""
+        user = await self.user_repo.get_by_id(user_id)
+        if not user:
+            raise AuthenticationError("User not found")
+        await self.token_repo.revoke_all_for_user(user_id)
+        user.sessions_valid_after = datetime.now(UTC)
+        await self.db.flush()
+        log.info("logout_all", user_id=str(user_id))
+
     async def get_me(self, user_id: UUID) -> UserOut:
         result = await self.db.execute(
             select(User)

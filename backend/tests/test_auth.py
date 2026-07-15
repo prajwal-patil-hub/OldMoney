@@ -272,6 +272,16 @@ class TestChangePassword:
         )
         assert resp3.status_code == 200
 
+    async def test_logout_all_revokes_access_token(
+        self, client: AsyncClient, auth_headers: dict
+    ):
+        assert (await client.get("/api/v1/auth/me", headers=auth_headers)).status_code == 200
+        resp = await client.post("/api/v1/auth/logout-all", headers=auth_headers)
+        assert resp.status_code == 200, resp.text
+        # The access token used to call it is now rejected.
+        after = await client.get("/api/v1/auth/me", headers=auth_headers)
+        assert after.status_code == 401
+
     async def test_change_password_revokes_access_token(
         self, client: AsyncClient, auth_headers: dict, registered_user: dict
     ):
