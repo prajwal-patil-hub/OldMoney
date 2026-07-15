@@ -483,6 +483,17 @@ class ImportService:
         if row.get("asset_symbol"):
             asset = await self._get_or_create_asset(row["asset_symbol"], org_id)
             asset_id = asset.id
+            # Record the trade price as a price point so imported positions
+            # value immediately (AUM = quantity x latest price; without any
+            # price row a freshly imported position shows $0).
+            if row.get("price"):
+                from app.modules.assets.repository import AssetRepository
+                await AssetRepository(self.db).upsert_price(
+                    asset_id=asset.id,
+                    org_id=org_id,
+                    price_date=row["trade_date"],
+                    close=row["price"],
+                )
 
         gross = None
         if row.get("quantity") and row.get("price"):
