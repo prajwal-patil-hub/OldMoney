@@ -17,7 +17,7 @@ export const useUIStore = create<UIState>()(
     (set) => ({
       sidebarCollapsed: false,
       commandPaletteOpen: false,
-      theme: 'light',
+      theme: 'dark', // OldMoney glass world is dark by default
 
       toggleSidebar: () => {
         set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed }))

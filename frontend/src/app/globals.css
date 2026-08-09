@@ -190,3 +190,54 @@
   from { opacity: 1; transform: scale(1) translateY(0); }
   to   { opacity: 0; transform: scale(0.98) translateY(4px); }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   OLDMONEY · LIQUID GLASS THEME  (applies in dark / default world)
+   Frosted translucent surfaces over a warm room ground.
+   Rules live outside @layer so they win over Tailwind utilities.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Warm "private study" ground behind the glass */
+.dark body {
+  background:
+    radial-gradient(46% 42% at 80% 4%,  rgba(165,122,56,.28), transparent 60%),
+    radial-gradient(52% 48% at 10% 98%, rgba(42,70,52,.42),  transparent 62%),
+    radial-gradient(44% 40% at 96% 90%, rgba(132,50,46,.30), transparent 60%),
+    linear-gradient(160deg,#141b16,#0b0f0c 58%,#0c0a09) !important;
+  background-attachment: fixed !important;
+}
+/* soft out-of-focus blooms so the backdrop-blur has detail to frost */
+.dark body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(340px 340px at 8% 22%, rgba(200,154,82,.22), transparent 70%),
+    radial-gradient(420px 420px at 92% 84%, rgba(53,96,63,.26), transparent 70%),
+    radial-gradient(300px 300px at 84% 10%, rgba(154,64,56,.2), transparent 70%);
+}
+
+/* Translucent glass surfaces (was opaque) — lets the room show through */
+.dark {
+  --surface:          rgba(247,240,224,.085);
+  --surface-elevated: rgba(247,240,224,.135);
+  --surface-muted:    rgba(247,240,224,.06);
+  --surface-inset:    rgba(0,0,0,.24);
+  --surface-overlay:  rgba(8,6,5,.55);
+  --border:           rgba(255,250,238,.16);
+  --border-strong:    rgba(255,250,238,.30);
+  --border-subtle:    rgba(255,250,238,.10);
+}
+
+/* Frost anything painted with a surface background */
+.dark [class*="bg-surface"] {
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+}
+/* Lit top edge on cards/panels/dialogs for real glass depth */
+.dark [class*="bg-surface-elevated"],
+.dark [cmdk-dialog] {
+  box-shadow: 0 24px 60px -22px rgba(0,0,0,.66), inset 0 1px 0 rgba(255,252,246,.5);
+  border-top-color: rgba(255,252,246,.5);
+}
+.dark [cmdk-dialog] { backdrop-filter: blur(28px) saturate(150%); -webkit-backdrop-filter: blur(28px) saturate(150%); }
+.dark [cmdk-overlay] { background: rgba(8,6,5,.5); backdrop-filter: blur(6px); }

@@ -18,21 +18,21 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // Primary action — Falu Red, cream text
+        // Primary action — neutral frosted glass, distinguished by a gold hairline
         default:
-          'bg-brand-primary text-text-inverse hover:bg-brand-hover active:bg-brand-active',
-        // Secondary — surface bg, hairline border
+          'bg-surface-elevated text-text-primary border border-accent/45 backdrop-blur-md shadow-sm hover:bg-surface-muted hover:border-accent/70',
+        // Secondary — lighter frosted glass
         secondary:
-          'bg-surface text-text-primary border border-border hover:bg-surface-muted hover:border-border-strong',
+          'bg-surface text-text-primary border border-border backdrop-blur-md hover:bg-surface-muted hover:border-border-strong',
         // Ghost — transparent, text-only
         ghost:
           'text-text-secondary hover:bg-surface-muted hover:text-text-primary',
-        // Destructive — danger palette, hairline border for "I mean it" feel
+        // Destructive — faint danger tint kept for affordance (semantics > uniformity)
         destructive:
-          'bg-danger-bg text-danger-text border border-danger-border hover:bg-danger/20',
+          'bg-danger-bg text-danger-text border border-danger-border backdrop-blur-md hover:bg-danger/20',
         // Link style — no background
         link:
-          'text-brand-primary underline-offset-4 hover:underline p-0 h-auto',
+          'text-accent underline-offset-4 hover:underline p-0 h-auto',
         // Outline — border with transparent background
         outline:
           'bg-transparent text-text-primary border border-border hover:bg-surface-muted hover:border-border-strong',
