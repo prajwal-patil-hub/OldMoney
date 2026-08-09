@@ -241,3 +241,57 @@
 }
 .dark [cmdk-dialog] { backdrop-filter: blur(28px) saturate(150%); -webkit-backdrop-filter: blur(28px) saturate(150%); }
 .dark [cmdk-overlay] { background: rgba(8,6,5,.5); backdrop-filter: blur(6px); }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   OLDMONEY · LIQUID GLASS — LIGHT MODE (daytime frosted glass)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Warm daytime study ground */
+html:not(.dark) body {
+  background:
+    radial-gradient(44% 40% at 82% 4%,  rgba(214,178,110,.34), transparent 60%),
+    radial-gradient(50% 46% at 8% 98%,  rgba(120,150,120,.26), transparent 62%),
+    radial-gradient(42% 40% at 96% 92%, rgba(200,120,90,.20),  transparent 60%),
+    linear-gradient(160deg,#efe7d6,#e7dfd1 55%,#ded4c4) !important;
+  background-attachment: fixed !important;
+}
+html:not(.dark) body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(340px 340px at 8% 22%,  rgba(214,178,110,.3),  transparent 70%),
+    radial-gradient(420px 420px at 92% 84%, rgba(120,150,120,.26), transparent 70%),
+    radial-gradient(300px 300px at 84% 10%, rgba(200,120,90,.2),   transparent 70%);
+}
+
+/* Translucent light glass surfaces (dark ink text stays readable) */
+html:not(.dark) {
+  --surface:          rgba(255,252,246,.55);
+  --surface-elevated: rgba(255,253,249,.72);
+  --surface-muted:    rgba(255,250,242,.42);
+  --surface-inset:    rgba(90,66,36,.07);
+  --surface-overlay:  rgba(60,45,30,.35);
+  --border:           rgba(120,92,50,.18);
+  --border-strong:    rgba(120,92,50,.30);
+  --border-subtle:    rgba(120,92,50,.10);
+}
+html:not(.dark) [class*="bg-surface"] {
+  backdrop-filter: blur(20px) saturate(135%);
+  -webkit-backdrop-filter: blur(20px) saturate(135%);
+}
+html:not(.dark) [cmdk-dialog] { backdrop-filter: blur(26px) saturate(140%); -webkit-backdrop-filter: blur(26px) saturate(140%); }
+html:not(.dark) [cmdk-overlay] { background: rgba(60,45,30,.3); }
+
+/* ═══════════════════════════════════════════════════════════════
+   DEPTH — cards & panels float clearly above the ground (both themes)
+   Exclude inset/muted (inputs, table headers, chips) so only real
+   containers get the lift.
+   ═══════════════════════════════════════════════════════════════ */
+.dark [class*="bg-surface"]:not([class*="inset"]):not([class*="muted"]) {
+  box-shadow: 0 18px 42px -18px rgba(0,0,0,.66), inset 0 1px 0 rgba(255,252,246,.42);
+  border-top-color: rgba(255,252,246,.45);
+}
+html:not(.dark) [class*="bg-surface"]:not([class*="inset"]):not([class*="muted"]) {
+  box-shadow: 0 18px 40px -18px rgba(70,50,30,.4), inset 0 1px 0 rgba(255,255,255,.85);
+  border-top-color: rgba(255,255,255,.9);
+}
