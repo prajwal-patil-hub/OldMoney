@@ -193,105 +193,54 @@
 
 
 /* ═══════════════════════════════════════════════════════════════
-   OLDMONEY · LIQUID GLASS THEME  (applies in dark / default world)
-   Frosted translucent surfaces over a warm room ground.
+   OLDMONEY · NEO-SKEUOMORPHIC TACTILE THEME
+   One warm-paper material, lit from the top-left. Depth comes from
+   dual-directional shadow (dark bottom-right + light highlight
+   top-left), NOT from translucency. Objects are either raised FROM
+   the paper, pressed INTO it, or floating ABOVE it.
    Rules live outside @layer so they win over Tailwind utilities.
+   Surface/text/shadow VALUES come from tokens.css (both themes).
    ═══════════════════════════════════════════════════════════════ */
 
-/* Warm "private study" ground behind the glass */
-.dark body {
-  background:
-    radial-gradient(46% 42% at 80% 4%,  rgba(165,122,56,.28), transparent 60%),
-    radial-gradient(52% 48% at 10% 98%, rgba(42,70,52,.42),  transparent 62%),
-    radial-gradient(44% 40% at 96% 90%, rgba(132,50,46,.30), transparent 60%),
-    linear-gradient(160deg,#141b16,#0b0f0c 58%,#0c0a09) !important;
-  background-attachment: fixed !important;
-}
-/* soft out-of-focus blooms so the backdrop-blur has detail to frost */
-.dark body::before {
-  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background:
-    radial-gradient(340px 340px at 8% 22%, rgba(200,154,82,.22), transparent 70%),
-    radial-gradient(420px 420px at 92% 84%, rgba(53,96,63,.26), transparent 70%),
-    radial-gradient(300px 300px at 84% 10%, rgba(154,64,56,.2), transparent 70%);
+/* The paper itself — flat, opaque, warm. Subtle grain via a faint
+   low-poly-ish facet wash keeps it from reading as dead-flat, but it
+   stays quiet (no blur behind it to feed). */
+body {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(60% 55% at 78% 6%,  oklch(96% 0.02 84 / 0.35), transparent 60%),
+    radial-gradient(60% 55% at 12% 96%, oklch(70% 0.02 60 / 0.10), transparent 62%);
+  background-attachment: fixed;
 }
 
-/* Translucent glass surfaces (was opaque) — lets the room show through */
-.dark {
-  --surface:          rgba(247,240,224,.085);
-  --surface-elevated: rgba(247,240,224,.135);
-  --surface-muted:    rgba(247,240,224,.06);
-  --surface-inset:    rgba(0,0,0,.24);
-  --surface-overlay:  rgba(8,6,5,.55);
-  --border:           rgba(255,250,238,.16);
-  --border-strong:    rgba(255,250,238,.30);
-  --border-subtle:    rgba(255,250,238,.10);
+/* ── RAISED surfaces: cards, panels, popovers, elevated containers ──
+   Extruded from the paper. Exclude inset/muted (wells, grooves) so
+   only real containers get the tactile lift. */
+[class*="bg-surface"]:not([class*="inset"]):not([class*="muted"]) {
+  box-shadow: var(--nm-raised);
+  border-color: transparent;   /* shadow carries the edge, not a line */
 }
 
-/* Frost anything painted with a surface background */
-.dark [class*="bg-surface"] {
-  backdrop-filter: blur(22px) saturate(140%);
-  -webkit-backdrop-filter: blur(22px) saturate(140%);
-}
-/* Lit top edge on cards/panels/dialogs for real glass depth */
-.dark [class*="bg-surface-elevated"],
-.dark [cmdk-dialog] {
-  box-shadow: 0 24px 60px -22px rgba(0,0,0,.66), inset 0 1px 0 rgba(255,252,246,.5);
-  border-top-color: rgba(255,252,246,.5);
-}
-.dark [cmdk-dialog] { backdrop-filter: blur(28px) saturate(150%); -webkit-backdrop-filter: blur(28px) saturate(150%); }
-.dark [cmdk-overlay] { background: rgba(8,6,5,.5); backdrop-filter: blur(6px); }
-
-
-/* ═══════════════════════════════════════════════════════════════
-   OLDMONEY · LIQUID GLASS — LIGHT MODE (daytime frosted glass)
-   ═══════════════════════════════════════════════════════════════ */
-
-/* Warm daytime study ground */
-html:not(.dark) body {
-  background:
-    radial-gradient(44% 40% at 82% 4%,  rgba(214,178,110,.34), transparent 60%),
-    radial-gradient(50% 46% at 8% 98%,  rgba(120,150,120,.26), transparent 62%),
-    radial-gradient(42% 40% at 96% 92%, rgba(200,120,90,.20),  transparent 60%),
-    linear-gradient(160deg,#efe7d6,#e7dfd1 55%,#ded4c4) !important;
-  background-attachment: fixed !important;
-}
-html:not(.dark) body::before {
-  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background:
-    radial-gradient(340px 340px at 8% 22%,  rgba(214,178,110,.3),  transparent 70%),
-    radial-gradient(420px 420px at 92% 84%, rgba(120,150,120,.26), transparent 70%),
-    radial-gradient(300px 300px at 84% 10%, rgba(200,120,90,.2),   transparent 70%);
+/* ── INSET surfaces: inputs, code blocks, sliders/progress tracks ── */
+[class*="bg-surface-inset"] {
+  box-shadow: var(--nm-inset);
+  border-color: var(--border-subtle);
 }
 
-/* Translucent light glass surfaces (dark ink text stays readable) */
-html:not(.dark) {
-  --surface:          rgba(255,252,246,.55);
-  --surface-elevated: rgba(255,253,249,.72);
-  --surface-muted:    rgba(255,250,242,.42);
-  --surface-inset:    rgba(90,66,36,.07);
-  --surface-overlay:  rgba(60,45,30,.35);
-  --border:           rgba(120,92,50,.18);
-  --border-strong:    rgba(120,92,50,.30);
-  --border-subtle:    rgba(120,92,50,.10);
+/* ── MUTED surfaces: table headers, segmented grooves — a gentle
+   recess, lighter than a full input well. */
+[class*="bg-surface-muted"] {
+  box-shadow: var(--nm-inset);
 }
-html:not(.dark) [class*="bg-surface"] {
-  backdrop-filter: blur(20px) saturate(135%);
-  -webkit-backdrop-filter: blur(20px) saturate(135%);
-}
-html:not(.dark) [cmdk-dialog] { backdrop-filter: blur(26px) saturate(140%); -webkit-backdrop-filter: blur(26px) saturate(140%); }
-html:not(.dark) [cmdk-overlay] { background: rgba(60,45,30,.3); }
 
-/* ═══════════════════════════════════════════════════════════════
-   DEPTH — cards & panels float clearly above the ground (both themes)
-   Exclude inset/muted (inputs, table headers, chips) so only real
-   containers get the lift.
-   ═══════════════════════════════════════════════════════════════ */
-.dark [class*="bg-surface"]:not([class*="inset"]):not([class*="muted"]) {
-  box-shadow: 0 18px 42px -18px rgba(0,0,0,.66), inset 0 1px 0 rgba(255,252,246,.42);
-  border-top-color: rgba(255,252,246,.45);
+/* ── FLOATING overlays: command palette / dialogs sit ABOVE the
+   surface, so they use a clean drop shadow, not the neumorphic pair. */
+[cmdk-dialog] {
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border);
 }
-html:not(.dark) [class*="bg-surface"]:not([class*="inset"]):not([class*="muted"]) {
-  box-shadow: 0 18px 40px -18px rgba(70,50,30,.4), inset 0 1px 0 rgba(255,255,255,.85);
-  border-top-color: rgba(255,255,255,.9);
+[cmdk-overlay] {
+  background: var(--surface-overlay);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }

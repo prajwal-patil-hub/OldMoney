@@ -11,11 +11,19 @@
 
 ---
 
-## 0. Status — Adoption Not Yet Confirmed ⚠️
+## 0. Status — ADOPTED ✅ (replaces the frosted-glass theme)
 
-This system is a **fundamental reversal** of the frosted-glass theme currently shipped in the app (`globals.css` glass layer, translucent surfaces, `backdrop-filter` blur, dark-by-default "room" background). Neo-skeuomorphism is **opaque, matte, warm paper with dual-directional shadow** — the visual opposite of translucent glass.
+Resolved with the product owner:
+1. **Adoption:** this neo-skeuomorphic system **replaces** the frosted-glass theme entirely.
+2. **Modes:** **both** light (warm cream paper) and dark (warm charcoal paper) neumorphic variants.
+3. **Palette:** derived from the reference image using best judgment (all non-`[OBSERVED]` values remain honest inferences — see §3.2).
 
-**Nothing in the running app has been changed.** This is documentation only. Whether this replaces the glass theme, coexists as a second theme, or is scoped to a subsection is **Question 1 below** and must be answered before any code moves.
+**Now wired into the app** (this branch):
+- `frontend/src/styles/tokens.css` — semantic tokens retuned to warm paper (light + dark); terracotta accent unified with brand-primary; neumorphic `--nm-raised / --nm-inset / --nm-pressed` shadow tokens added; radii softened to 8/16/24.
+- `frontend/src/app/globals.css` — the entire liquid-glass layer removed; replaced with the tactile treatment (opaque paper, raised/inset dual-shadow surfaces, floating drop-shadow overlays, no `backdrop-filter`).
+- `frontend/src/components/ui/button.tsx` — buttons are now raised paper "keys" that press in on `:active`.
+
+The glass theme is gone. Remaining component-level polish (inputs, switches, tabs, sliders, cards) inherits the tactile look via the shared surface tokens; per-component tactile variants are the follow-up pass.
 
 ---
 
@@ -403,10 +411,16 @@ body { background: var(--paper-base); color: var(--ink); }
 
 ---
 
-## 17. Minimum Questions (blocking) — please answer these before I build anything
+## 17. Questions — RESOLVED ✅
 
-1. **Adoption scope.** Does this neo-skeuomorphic system **(a) replace** the frosted-glass theme entirely, **(b) coexist** as a second selectable theme, or **(c)** apply only to a specific area? *(This is the one true blocker — everything downstream depends on it.)*
-2. **Dark mode.** Do you want a dark neumorphic variant too, or is this a **light-only, warm-paper** system?
-3. **Fidelity source.** Can you share the reference at **full resolution** (or the source file / hex values)? Right now all colors except the paper and the terracotta accent are honest eyeball estimates — I don't want to ship inferred hex as if it were exact.
+1. **Adoption scope** → **Replace** the glass theme entirely. (Done.)
+2. **Dark mode** → **Both** light and dark neumorphic modes. (Done.)
+3. **Fidelity source** → Derive from the image, best judgment. (Done — non-`[OBSERVED]` colors remain flagged as inferences in §3.2; a contrast pass is queued per the notes in `tokens.css`.)
 
-I have **not** written any application code or designed any project screens, per your instruction. Awaiting your answers on the three above before proceeding.
+### Open decision you may want to flip
+- **Primary button color.** The reference's *primary* key is a filled **terracotta**. Per your earlier preference ("no coloured buttons") the shipped `default` button is a **neutral raised paper key** instead. One-line switch to adopt the reference's terracotta primary: change the `default` variant background in `button.tsx` from `var(--surface-elevated)` to `var(--accent)` with `text-text-inverse`. Say the word and I'll flip it.
+
+### Follow-up passes (not yet done)
+- Per-component tactile variants: inputs (focus = accent ring + deeper inset), switches (raised knob sliding a full-pill track), tabs/segmented (pressed groove), sliders, checkboxes/radios (inset well → raised accent knob when checked), cards (hover lift).
+- Runtime WCAG/APCA contrast pass; bump `--text-muted` if it must carry small body text (see `tokens.css` notes).
+- Dark-mode fine-tuning of the neumorphic highlight strength on real dashboard cards.

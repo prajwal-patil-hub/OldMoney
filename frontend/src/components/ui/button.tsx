@@ -4,38 +4,43 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  // Base: flex layout, rounded (6px — never pill), no pointer-events when disabled
+  // Base: a tactile "key" — raised from the paper, presses IN on :active.
+  // Arbitrary-value backgrounds (bg-[var(--…)]) are used deliberately so
+  // buttons do NOT match the global [class*="bg-surface"] raised rule and
+  // keep full control of their own neumorphic press state.
   [
     'inline-flex items-center justify-center gap-2 whitespace-nowrap',
-    'rounded font-semibold select-none',
-    'transition-colors duration-[120ms] ease-standard',
+    'rounded-[var(--radius-md)] font-semibold select-none', // 8px tactile radius
+    'transition-[box-shadow,transform,filter,background-color] duration-[140ms] ease-standard',
+    'active:translate-y-px', // key physically sinks
     'focus-visible:outline-none focus-visible:ring-2',
-    'focus-visible:ring-brand-primary/40 focus-visible:ring-offset-2',
-    'focus-visible:ring-offset-surface',
-    'disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none',
+    'focus-visible:ring-brand-primary/45 focus-visible:ring-offset-2',
+    'focus-visible:ring-offset-[var(--background)]',
+    'disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none disabled:shadow-none',
     '[&_svg]:pointer-events-none [&_svg]:shrink-0',
   ].join(' '),
   {
     variants: {
       variant: {
-        // Primary action — neutral frosted glass, distinguished by a gold hairline
+        // Default — neutral raised paper key (per your preference: no coloured fills).
+        // The reference's primary key is terracotta; flip bg to var(--accent) to adopt it.
         default:
-          'bg-surface-elevated text-text-primary border border-accent/45 backdrop-blur-md shadow-sm hover:bg-surface-muted hover:border-accent/70',
-        // Secondary — lighter frosted glass
+          'bg-[var(--surface-elevated)] text-text-primary shadow-[var(--nm-raised-sm)] hover:brightness-[1.03] active:shadow-[var(--nm-pressed)]',
+        // Secondary — a lighter, flatter key on the same material
         secondary:
-          'bg-surface text-text-primary border border-border backdrop-blur-md hover:bg-surface-muted hover:border-border-strong',
-        // Ghost — transparent, text-only
+          'bg-[var(--surface)] text-text-secondary shadow-[var(--nm-raised-sm)] hover:brightness-[1.03] active:shadow-[var(--nm-pressed)]',
+        // Ghost — flush with the paper; hover reveals a faint recess
         ghost:
-          'text-text-secondary hover:bg-surface-muted hover:text-text-primary',
-        // Destructive — faint danger tint kept for affordance (semantics > uniformity)
+          'text-text-secondary hover:bg-[var(--surface-muted)] hover:text-text-primary active:shadow-[var(--nm-inset)]',
+        // Destructive — neutral key, danger-coloured ink (semantics without a loud fill)
         destructive:
-          'bg-danger-bg text-danger-text border border-danger-border backdrop-blur-md hover:bg-danger/20',
-        // Link style — no background
+          'bg-[var(--surface-elevated)] text-danger-text shadow-[var(--nm-raised-sm)] hover:brightness-[1.03] active:shadow-[var(--nm-pressed)]',
+        // Link — no key, terracotta text
         link:
-          'text-accent underline-offset-4 hover:underline p-0 h-auto',
-        // Outline — border with transparent background
+          'text-accent underline-offset-4 hover:underline p-0 h-auto shadow-none active:translate-y-0',
+        // Outline — engraved outline on the paper, presses into a well
         outline:
-          'bg-transparent text-text-primary border border-border hover:bg-surface-muted hover:border-border-strong',
+          'bg-transparent text-text-primary border border-border-strong hover:bg-[var(--surface-muted)] active:shadow-[var(--nm-inset)]',
       },
       size: {
         sm:      'h-7 px-2.5 text-xs [&_svg]:size-3',

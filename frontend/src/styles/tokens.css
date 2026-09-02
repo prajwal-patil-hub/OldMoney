@@ -78,39 +78,40 @@
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
-  /* ── Surfaces ── */
-  --background:          var(--neutral-50);      /* #FAF6F1 warm cream  */
-  --surface:             var(--neutral-0);        /* cards, panels       */
-  --surface-elevated:    oklch(99.5% 0.002 38);  /* dialogs, popovers   */
-  --surface-muted:       var(--neutral-100);      /* table header, muted */
-  --surface-inset:       var(--neutral-150);      /* input bg, code bg   */
-  --surface-overlay:     oklch(12% 0.028 38 / 40%); /* modal backdrop   */
+  /* ── Surfaces — NEO-SKEUOMORPHIC warm paper (one material, top-left light) ──
+        [OBSERVED] paper #EAE2D3 · raised is lighter, sunk is darker.        */
+  --background:          oklch(89.0% 0.021 84);   /* #EAE2D3 cream paper   */
+  --surface:             oklch(91.5% 0.019 84);   /* raised paper (cards)  */
+  --surface-elevated:    oklch(93.5% 0.016 84);   /* floating overlays     */
+  --surface-muted:       oklch(87.0% 0.021 84);   /* table header, groove  */
+  --surface-inset:       oklch(85.0% 0.023 82);   /* sunk well (inputs)    */
+  --surface-overlay:     oklch(28% 0.020 60 / 40%); /* modal backdrop      */
 
-  /* ── Borders ── */
-  --border:              var(--neutral-200);      /* default hairline    */
-  --border-strong:       var(--neutral-300);      /* dividers, focused   */
-  --border-subtle:       var(--neutral-150);      /* very light dividers */
+  /* ── Borders (shadow does the work; borders are backup hairlines) ── */
+  --border:              oklch(78% 0.020 75);
+  --border-strong:       oklch(68% 0.022 70);
+  --border-subtle:       oklch(84% 0.018 78);
 
-  /* ── Text ── */
-  --text-primary:        var(--neutral-800);      /* headings, values    */
-  --text-secondary:      var(--neutral-600);      /* subheadings, labels */
-  --text-muted:          var(--neutral-500);      /* captions, placeholders*/
-  --text-placeholder:    var(--neutral-400);      /* input placeholders  */
-  --text-inverse:        var(--neutral-50);       /* on dark surfaces    */
-  --text-disabled:       var(--neutral-300);      /* disabled states     */
+  /* ── Text (espresso ink — never pure black) ── */
+  --text-primary:        oklch(30% 0.022 62);     /* #3B2E22 ink-strong    */
+  --text-secondary:      oklch(43% 0.025 62);     /* #5A4A3A ink           */
+  --text-muted:          oklch(57% 0.022 66);     /* #8A7A66 ink-muted     */
+  --text-placeholder:    oklch(72% 0.020 72);     /* #B4A793 ink-faint     */
+  --text-inverse:        oklch(94% 0.018 84);     /* on accent/dark        */
+  --text-disabled:       oklch(76% 0.015 72);     /* disabled states       */
 
-  /* ── Brand actions ── */
-  --brand-primary:       var(--brand-falu);       /* #7C2220 Falu Red    */
-  --brand-primary-hover: var(--brand-pau);        /* #6F1D01 darker      */
-  --brand-primary-active:var(--brand-deepest);    /* press state         */
-  --brand-primary-subtle:oklch(28% 0.119 26 / 8%); /* tinted bg         */
-  --brand-primary-muted: oklch(28% 0.119 26 / 16%);/* hover tinted bg   */
+  /* ── Brand actions — unified with the single terracotta accent ── */
+  --brand-primary:       oklch(58% 0.115 46);     /* #C36B41 terracotta    */
+  --brand-primary-hover: oklch(53% 0.115 44);     /* #B25E37 darker        */
+  --brand-primary-active:oklch(47% 0.110 44);     /* #9E5230 press         */
+  --brand-primary-subtle:oklch(58% 0.115 46 / 10%);
+  --brand-primary-muted: oklch(58% 0.115 46 / 18%);
 
-  /* ── Accent (Gold) ── */
-  --accent:              var(--accent-base);      /* #9F6920             */
-  --accent-hover:        var(--accent-deep);      /* darker on hover     */
-  --accent-subtle:       var(--accent-pale);      /* tinted backgrounds  */
-  --accent-text:         var(--accent-base);      /* gold text on light  */
+  /* ── Accent (Terracotta / Copper) ── */
+  --accent:              oklch(58% 0.115 46);     /* #C36B41               */
+  --accent-hover:        oklch(53% 0.115 44);     /* darker on hover       */
+  --accent-subtle:       oklch(88% 0.040 66);     /* warm tint bg          */
+  --accent-text:         oklch(52% 0.115 45);     /* terracotta text       */
 
   /* ── Semantic status ── */
   --success:             var(--green-700);
@@ -140,14 +141,20 @@
   --negative-subtle:     var(--red-100);
   --neutral-value:       var(--text-primary);     /* flat / zero         */
 
-  /* ── Shadows (4 elevations, warm tint, low opacity) ── */
-  --shadow-xs:  0 1px 2px oklch(12% 0.028 38 / 0.04);
-  --shadow-sm:  0 1px 3px oklch(12% 0.028 38 / 0.06),
-                0 1px 2px oklch(12% 0.028 38 / 0.04);
-  --shadow-md:  0 4px 8px oklch(12% 0.028 38 / 0.08),
-                0 2px 4px oklch(12% 0.028 38 / 0.05);
-  --shadow-lg:  0 12px 24px oklch(12% 0.028 38 / 0.10),
-                0 4px 8px oklch(12% 0.028 38 / 0.06);
+  /* ── Drop-shadow elevation (overlays that FLOAT above the paper) ──
+        Printed L-scale from the reference: L1/L2/L3.                 */
+  --shadow-xs:  0 2px 4px oklch(28% 0.020 60 / 0.06);
+  --shadow-sm:  0 4px 8px oklch(28% 0.020 60 / 0.08);       /* L1 */
+  --shadow-md:  0 8px 16px oklch(28% 0.020 60 / 0.12);      /* L2 */
+  --shadow-lg:  0 16px 24px oklch(28% 0.020 60 / 0.16);     /* L3 */
+
+  /* ── Neumorphic dual-directional shadow (surface controls) ──
+        Dark warm shadow bottom-right + light highlight top-left.
+        This IS the tactile language — raised / inset / pressed.    */
+  --nm-raised:    6px 6px 14px rgba(122,100,74,.35), -6px -6px 13px rgba(255,251,242,.85);
+  --nm-raised-sm: 3px 3px 7px  rgba(122,100,74,.30), -3px -3px 7px  rgba(255,251,242,.80);
+  --nm-inset:     inset 4px 4px 9px rgba(122,100,74,.30), inset -4px -4px 9px rgba(255,251,242,.75);
+  --nm-pressed:   inset 3px 3px 7px rgba(122,100,74,.40), inset -2px -2px 5px rgba(255,251,242,.55);
 
   /* ── Focus ring ── */
   --ring:         var(--brand-primary);
@@ -165,39 +172,41 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .dark {
-  /* ── Surfaces ── */
-  --background:          oklch(11% 0.022 27);     /* deep warm near-black*/
-  --surface:             oklch(15% 0.025 27);     /* card surface        */
-  --surface-elevated:    oklch(18% 0.028 27);     /* dialogs/popovers    */
-  --surface-muted:       oklch(20% 0.026 30);     /* table header        */
-  --surface-inset:       oklch(13% 0.020 27);     /* input bg            */
-  --surface-overlay:     oklch(5% 0.015 27 / 70%);
+  /* ── Surfaces — NEO-SKEUOMORPHIC warm charcoal paper ──
+        Same tactile logic as light, inverted: mid-dark material so
+        both the dark shadow and the warm highlight can be seen.     */
+  --background:          oklch(26.0% 0.010 66);   /* warm charcoal paper */
+  --surface:             oklch(29.5% 0.012 66);   /* raised (cards)      */
+  --surface-elevated:    oklch(33.0% 0.013 66);   /* floating overlays   */
+  --surface-muted:       oklch(27.0% 0.011 66);   /* table header/groove */
+  --surface-inset:       oklch(22.0% 0.009 66);   /* sunk well (inputs)  */
+  --surface-overlay:     oklch(12% 0.010 60 / 62%);
 
   /* ── Borders ── */
-  --border:              oklch(25% 0.030 30);
-  --border-strong:       oklch(32% 0.035 30);
-  --border-subtle:       oklch(20% 0.022 30);
+  --border:              oklch(37% 0.014 66);
+  --border-strong:       oklch(46% 0.016 66);
+  --border-subtle:       oklch(31% 0.012 66);
 
-  /* ── Text ── */
-  --text-primary:        var(--accent-light);     /* #F1DEA8 Buttermilk  */
-  --text-secondary:      var(--neutral-300);      /* warm grey           */
-  --text-muted:          var(--neutral-500);
-  --text-placeholder:    oklch(40% 0.018 38);
-  --text-inverse:        oklch(11% 0.022 27);
-  --text-disabled:       oklch(30% 0.018 30);
+  /* ── Text (warm cream ink) ── */
+  --text-primary:        oklch(90% 0.020 82);     /* warm cream          */
+  --text-secondary:      oklch(74% 0.018 78);
+  --text-muted:          oklch(60% 0.016 72);
+  --text-placeholder:    oklch(50% 0.014 72);
+  --text-inverse:        oklch(26% 0.010 66);
+  --text-disabled:       oklch(44% 0.012 70);
 
-  /* ── Brand actions ── */
-  --brand-primary:       oklch(55% 0.130 25);     /* lighter for dark bg */
-  --brand-primary-hover: oklch(62% 0.120 25);
-  --brand-primary-active:oklch(68% 0.110 25);
-  --brand-primary-subtle:oklch(55% 0.130 25 / 12%);
-  --brand-primary-muted: oklch(55% 0.130 25 / 20%);
+  /* ── Brand actions — terracotta, brightened for dark paper ── */
+  --brand-primary:       oklch(64% 0.125 46);
+  --brand-primary-hover: oklch(70% 0.118 48);
+  --brand-primary-active:oklch(75% 0.110 50);
+  --brand-primary-subtle:oklch(64% 0.125 46 / 15%);
+  --brand-primary-muted: oklch(64% 0.125 46 / 24%);
 
-  /* ── Accent (Gold) ── */
-  --accent:              var(--accent-rob-roy);   /* brighter on dark    */
-  --accent-hover:        var(--accent-marzipan);
-  --accent-subtle:       oklch(74% 0.099 73 / 12%);
-  --accent-text:         var(--accent-rob-roy);
+  /* ── Accent (Terracotta / Copper, brighter) ── */
+  --accent:              oklch(66% 0.125 48);
+  --accent-hover:        oklch(72% 0.115 50);
+  --accent-subtle:       oklch(66% 0.125 48 / 15%);
+  --accent-text:         oklch(70% 0.120 50);
 
   /* ── Status ── */
   --success:             var(--green-500);
@@ -226,14 +235,18 @@
   --negative:            oklch(65% 0.130 25);
   --negative-subtle:     oklch(52% 0.130 25 / 15%);
 
-  /* ── Shadows (slightly brighter for dark bg) ── */
-  --shadow-xs:  0 1px 2px oklch(5% 0.010 27 / 0.30);
-  --shadow-sm:  0 1px 3px oklch(5% 0.010 27 / 0.40),
-                0 1px 2px oklch(5% 0.010 27 / 0.25);
-  --shadow-md:  0 4px 8px oklch(5% 0.010 27 / 0.50),
-                0 2px 4px oklch(5% 0.010 27 / 0.30);
-  --shadow-lg:  0 12px 24px oklch(5% 0.010 27 / 0.60),
-                0 4px 8px oklch(5% 0.010 27 / 0.40);
+  /* ── Drop-shadow elevation (floating overlays, dark ground) ── */
+  --shadow-xs:  0 2px 4px rgba(0,0,0,0.35);
+  --shadow-sm:  0 4px 8px rgba(0,0,0,0.42);       /* L1 */
+  --shadow-md:  0 8px 16px rgba(0,0,0,0.52);      /* L2 */
+  --shadow-lg:  0 16px 24px rgba(0,0,0,0.62);     /* L3 */
+
+  /* ── Neumorphic dual-directional shadow (dark paper) ──
+        Near-black shadow bottom-right + dim warm highlight top-left. */
+  --nm-raised:    6px 6px 14px rgba(0,0,0,.50), -5px -5px 12px rgba(96,86,72,.30);
+  --nm-raised-sm: 3px 3px 7px  rgba(0,0,0,.48), -3px -3px 7px  rgba(96,86,72,.26);
+  --nm-inset:     inset 4px 4px 9px rgba(0,0,0,.52), inset -4px -4px 9px rgba(96,86,72,.24);
+  --nm-pressed:   inset 3px 3px 7px rgba(0,0,0,.58), inset -2px -2px 5px rgba(96,86,72,.20);
 
   --ring:        oklch(55% 0.130 25);
   --ring-offset: var(--surface);
@@ -328,14 +341,14 @@
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
+  /* Neo-skeuomorphic scale — soft, tactile. Printed: 0/4/8/16/24/circle */
   --radius-none:   0px;
-  --radius-xs:     2px;   /* subtle: table cell highlights               */
-  --radius-sm:     4px;   /* small: badges, chips, inline code           */
-  --radius-md:     6px;   /* default: buttons, inputs, small cards       */
-  --radius-lg:    10px;   /* large: cards, panels, dialogs               */
-  --radius-xl:    14px;   /* extra large: feature cards, modals          */
-  --radius-full: 9999px;  /* pill: only for status dots and avatars      */
-  /* NOT used for buttons — 6px is correct for buttons */
+  --radius-xs:     4px;   /* subtle: table cell highlights, chips        */
+  --radius-sm:     8px;   /* small: badges, inputs, small controls       */
+  --radius-md:     8px;   /* default: buttons, inputs                    */
+  --radius-lg:    16px;   /* large: cards, panels, dialogs               */
+  --radius-xl:    24px;   /* extra large: feature cards, modals          */
+  --radius-full: 9999px;  /* pill: switch track, status dots, avatars    */
 }
 
 
@@ -452,22 +465,24 @@
    (verified via APCA polarity-aware or WCAG relative luminance)
    ═══════════════════════════════════════════════════════════════
 
-   LIGHT MODE (critical pairs):
-   ✅ text-primary (#1A0F0C equiv) on background (#FAF6F1):  ~14:1
-   ✅ text-secondary on background:                          ~6.5:1
-   ✅ text-muted on background:                              ~4.6:1  (≥4.5 AA)
-   ✅ brand-primary (Falu #7C2220) on surface white:         ~7.2:1
-   ✅ white text on brand-primary button:                    ~7.2:1
-   ✅ positive green on positive-subtle bg:                  ~5.1:1
-   ✅ negative red on negative-subtle bg:                    ~5.3:1
+   NEO-SKEUOMORPHIC PALETTE — warm paper. The reference palette is
+   intentionally low-contrast; these are the AA-critical pairs to
+   verify at runtime once the exact rendered OKLCH values are known.
 
-   DARK MODE (critical pairs):
-   ✅ text-primary (Buttermilk #F1DEA8) on dark background:  ~12:1
-   ✅ text-secondary on dark background:                     ~6.1:1
-   ✅ brand-primary (lighter Falu) on dark surface:          ~5.8:1
-   ✅ white/cream text on brand-primary button (dark mode):  ~5.8:1
+   LIGHT MODE (paper ~#EAE2D3):
+   • text-primary  (espresso ~#3B2E22) on paper:  ~9:1   (AA/AAA ok)
+   • text-secondary (~#5A4A3A) on paper:          ~6:1   (AA ok)
+   ⚠️ text-muted   (~#8A7A66) on paper:           ~3.4:1 — FAILS AA for
+     body text. Use only for ≥18px/large or non-essential meta, OR
+     darken to ~oklch(52% 0.022 66) if used for small captions.
+   • text-inverse on terracotta accent button:    ~4.6:1 (AA ok, verify)
 
-   ⚠️ text-muted in dark mode: check at runtime with exact OKLCH
-   rendered values — oklch(54% 0.020 38) on oklch(15% 0.025 27)
-   approximates ~4.8:1, marginally AA-compliant.
+   DARK MODE (charcoal paper ~oklch 26%):
+   • text-primary (cream) on charcoal:            ~10:1  (AA/AAA ok)
+   • text-secondary on charcoal:                  ~5.5:1 (AA ok)
+   ⚠️ text-muted on charcoal:                     verify ~4.2:1 at runtime
+   • accent (bright terracotta) on charcoal:      ~5:1   (AA ok)
+
+   ACTION: run a contrast pass (APCA or WCAG) on the rendered values
+   before shipping; bump --text-muted if it must carry small text.
    ═══════════════════════════════════════════════════════════════ */
