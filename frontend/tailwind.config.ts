@@ -13,13 +13,16 @@ const config: Config = {
     // ── Override defaults where we want full control ──
     borderRadius: {
       none:   '0px',
-      xs:     'var(--radius-xs)',     // 2px
-      sm:     'var(--radius-sm)',     // 4px
-      DEFAULT:'var(--radius-md)',     // 6px  ← `rounded` maps here
-      md:     'var(--radius-md)',     // 6px
-      lg:     'var(--radius-lg)',     // 10px
-      xl:     'var(--radius-xl)',     // 14px
+      xs:     'var(--radius-xs)',     // 4px
+      sm:     'var(--radius-sm)',     // 8px
+      DEFAULT:'var(--radius-md)',     // 8px  ← `rounded` maps here
+      md:     'var(--radius-md)',     // 8px
+      lg:     'var(--radius-lg)',     // 16px
+      xl:     'var(--radius-xl)',     // 24px
       full:   '9999px',
+      // Semantic aliases used across the app (buttons/cards/menus)
+      button: 'var(--radius-md)',    // 8px
+      card:   'var(--radius-lg)',    // 16px
     },
     fontFamily: {
       display: ['var(--font-display)', 'Georgia', 'serif'],
@@ -138,7 +141,15 @@ const config: Config = {
         md:       'var(--shadow-md)',
         lg:       'var(--shadow-lg)',
         none:     'none',
-        // focus ring is done via ring utilities
+        // ── Neo-skeuomorphic dual-directional shadows ──
+        raised:    'var(--nm-raised)',
+        'raised-sm':'var(--nm-raised-sm)',
+        inset:     'var(--nm-inset)',
+        pressed:   'var(--nm-pressed)',
+        // Semantic aliases used across the app
+        card:        'var(--nm-raised-sm)',
+        'card-hover':'var(--nm-raised)',
+        // focus ring is done via ring / outline utilities
       },
 
       // ── Motion ──

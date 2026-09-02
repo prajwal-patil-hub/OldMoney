@@ -213,28 +213,49 @@ body {
   background-attachment: fixed;
 }
 
-/* ── RAISED surfaces: cards, panels, popovers, elevated containers ──
-   Extruded from the paper. Exclude inset/muted (wells, grooves) so
-   only real containers get the tactile lift. */
-[class*="bg-surface"]:not([class*="inset"]):not([class*="muted"]) {
+/* The `:not([class*=":bg-surface"])` guard is important: Tailwind
+   STATE-VARIANT classes (hover:bg-surface-muted, data-[state]:bg-surface,
+   focus:bg-surface-inset) keep the substring in the class attribute at
+   all times, so without the guard the shadow would apply permanently
+   instead of only in that state. Those cases are handled explicitly. */
+
+/* ── RAISED surfaces: cards, panels, elevated containers ──
+   Extruded from the paper. Exclude inset/muted (wells, grooves) and
+   any state-variant surface class so only real containers lift. */
+[class*="bg-surface"]:not([class*=":bg-surface"]):not([class*="inset"]):not([class*="muted"]) {
   box-shadow: var(--nm-raised);
   border-color: transparent;   /* shadow carries the edge, not a line */
 }
 
 /* ── INSET surfaces: inputs, code blocks, sliders/progress tracks ── */
-[class*="bg-surface-inset"] {
+[class*="bg-surface-inset"]:not([class*=":bg-surface-inset"]) {
   box-shadow: var(--nm-inset);
   border-color: var(--border-subtle);
 }
 
-/* ── MUTED surfaces: table headers, segmented grooves — a gentle
-   recess, lighter than a full input well. */
-[class*="bg-surface-muted"] {
+/* ── MUTED surfaces: table headers, segmented grooves — a recess. */
+[class*="bg-surface-muted"]:not([class*=":bg-surface-muted"]) {
   box-shadow: var(--nm-inset);
 }
 
-/* ── FLOATING overlays: command palette / dialogs sit ABOVE the
-   surface, so they use a clean drop shadow, not the neumorphic pair. */
+/* ── Active segmented/tab trigger: lifts OUT of the muted groove.
+   (Excluded from the raised rule above via its :bg-surface variant
+   class, so it gets its own smaller raise here.) */
+[role="tab"][data-state="active"],
+[data-state="active"][class*=":bg-surface"] {
+  box-shadow: var(--nm-raised-sm);
+}
+
+/* ── Hover-lift for clickable cards (opt-in via .nm-liftable) ── */
+.nm-liftable:hover {
+  box-shadow: 8px 8px 18px rgba(122,100,74,.38), -7px -7px 16px rgba(255,251,242,.9);
+  transform: translateY(-1px);
+}
+.dark .nm-liftable:hover {
+  box-shadow: 8px 8px 18px rgba(0,0,0,.55), -6px -6px 14px rgba(96,86,72,.32);
+}
+
+/* ── FLOATING overlays (cmdk): a clean drop shadow, not neumorphic. ── */
 [cmdk-dialog] {
   box-shadow: var(--shadow-lg);
   border-color: var(--border);

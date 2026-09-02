@@ -15,26 +15,26 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <input
           type={type}
           className={cn(
-            // Layout + sizing
-            'flex h-[34px] w-full',
-            // Palette
+            // Layout + sizing — a touch taller for tactile comfort
+            'flex h-9 w-full',
+            // Palette — inset well (nm-inset shadow applied globally to bg-surface-inset)
             'bg-surface-inset text-text-primary font-sans text-sm',
-            // Border — 1px hairline
-            'border border-border rounded',
+            // Border — hairline lip on the well
+            'border border-border-subtle rounded-[var(--radius-md)]',
             // Spacing
-            'px-2.5',
+            'px-3',
             // Placeholder
             'placeholder:text-text-placeholder',
-            // Focus — swap border to border-strong + soft brand ring
-            'focus:outline-none focus:border-border-strong focus:ring-3 focus:ring-brand-primary/15',
-            // Transition — only border and shadow to avoid layout jank
-            'transition-[border-color,box-shadow] duration-[120ms]',
+            // Focus — accent ring via OUTLINE (independent of the well's box-shadow)
+            'focus:outline focus:outline-2 focus:outline-offset-1 focus:[outline-color:var(--accent)] focus:border-[var(--accent)]',
+            // Transition — border + outline only, no layout jank
+            'transition-[border-color,outline-color] duration-[120ms]',
             // File input cosmetics
             'file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-text-primary',
             // Disabled
             'disabled:cursor-not-allowed disabled:opacity-50',
-            // Error state overrides border + ring
-            hasError && 'border-danger focus:border-danger focus:ring-danger/20',
+            // Error state — warm danger lip + ring
+            hasError && 'border-danger focus:[outline-color:var(--danger)] focus:border-danger',
             className
           )}
           ref={ref}

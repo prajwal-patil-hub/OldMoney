@@ -62,7 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `
               try {
                 const theme = JSON.parse(localStorage.getItem('oldmoney-ui') || '{}')?.state?.theme
-                // Default to the dark glass world unless the user explicitly chose light
+                // Default to the dark tactile (warm charcoal paper) theme unless the user chose light
                 if (theme !== 'light') document.documentElement.classList.add('dark')
               } catch (_) { document.documentElement.classList.add('dark') }
             `,

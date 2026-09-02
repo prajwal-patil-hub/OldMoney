@@ -13,7 +13,8 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      'inline-flex h-9 items-center justify-center rounded-lg bg-surface-muted p-1',
+      // Inset groove — nm-inset applied globally to bg-surface-muted
+      'inline-flex h-9 items-center justify-center rounded-[var(--radius-md)] bg-surface-muted p-1',
       className
     )}
     {...props}
@@ -28,11 +29,13 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      'inline-flex items-center justify-center whitespace-nowrap rounded-button px-3 py-1.5',
+      'inline-flex items-center justify-center whitespace-nowrap rounded-[var(--radius-sm)] px-3 py-1.5',
       'text-sm font-medium text-text-muted transition-all duration-150',
-      'ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2',
+      // Focus ring via outline so it survives the neumorphic box-shadow
+      'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:[outline-color:var(--accent)]',
       'disabled:pointer-events-none disabled:opacity-50',
-      'data-[state=active]:bg-surface data-[state=active]:text-text-primary data-[state=active]:shadow-card',
+      // Active tab lifts out of the groove (raised-sm applied via globals.css)
+      'data-[state=active]:bg-surface data-[state=active]:text-text-primary',
       className
     )}
     {...props}

@@ -1,8 +1,9 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 
-// Card: bg-surface, 1px hairline border, 10px radius, subtle elevation shadow
-// No heavy drop shadows — just enough to lift off the warm cream bg
+// Card: a surface raised FROM the paper (neumorphic --nm-raised applied
+// globally to bg-surface). 16px tactile radius. No border/drop-shadow —
+// depth is the dual-directional shadow.
 const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & { hoverable?: boolean }
@@ -10,9 +11,10 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      'bg-surface border border-border rounded-lg shadow-sm',
-      // Hover variant for clickable cards — slightly more elevation, cursor pointer
-      hoverable && 'transition-shadow duration-[120ms] hover:shadow-md cursor-pointer',
+      'bg-surface rounded-[var(--radius-lg)]',
+      // Clickable cards lift on hover — `.nm-liftable` is handled in globals.css
+      // (un-layered, so it can override the base neumorphic shadow on hover).
+      hoverable && 'nm-liftable cursor-pointer transition-transform duration-[140ms]',
       className
     )}
     {...props}

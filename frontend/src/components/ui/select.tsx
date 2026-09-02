@@ -16,11 +16,13 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      'flex h-9 w-full items-center justify-between rounded-button border border-border bg-surface px-3 py-2 text-sm',
+      // Inset field well (nm-inset applied globally to bg-surface-inset)
+      'flex h-9 w-full items-center justify-between rounded-[var(--radius-md)] border border-border-subtle bg-surface-inset px-3 py-2 text-sm',
       'placeholder:text-text-muted text-text-primary',
-      'ring-offset-background focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary',
+      // Accent focus ring via outline (independent of the well shadow)
+      'focus:outline focus:outline-2 focus:outline-offset-1 focus:[outline-color:var(--accent)] focus:border-[var(--accent)]',
       'disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1',
-      'transition-all duration-150',
+      'transition-[border-color,outline-color] duration-150',
       className
     )}
     {...props}
@@ -69,7 +71,7 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        'relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-card border border-border bg-surface shadow-card-hover',
+        'relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-[var(--radius-md)] border border-border bg-[var(--surface-elevated)] shadow-lg',
         'data-[state=open]:animate-in data-[state=closed]:animate-out',
         'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
         'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
@@ -117,7 +119,7 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      'relative flex w-full cursor-default select-none items-center rounded-button py-1.5 pl-8 pr-2 text-sm outline-none',
+      'relative flex w-full cursor-default select-none items-center rounded-[var(--radius-sm)] py-1.5 pl-8 pr-2 text-sm outline-none',
       'text-text-primary focus:bg-surface-muted',
       'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       className

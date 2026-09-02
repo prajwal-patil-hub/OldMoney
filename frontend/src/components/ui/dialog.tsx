@@ -19,8 +19,8 @@ const DialogOverlay = React.forwardRef<
     ref={ref}
     className={cn(
       'fixed inset-0 z-overlay',
-      // surface-overlay is a translucent warm near-black (tokens.css)
-      'bg-surface-overlay backdrop-blur-[2px]',
+      // surface-overlay is a translucent warm near-black scrim (tokens.css) — no blur
+      'bg-surface-overlay',
       // Fade only — no scale/zoom on overlay
       'data-[state=open]:animate-in data-[state=closed]:animate-out',
       'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
@@ -44,7 +44,7 @@ const DialogContent = React.forwardRef<
         'fixed left-[50%] top-[50%] z-modal translate-x-[-50%] translate-y-[-50%]',
         'max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto',
         // Elevated surface — slightly lighter than surface for contrast against overlay
-        'bg-surface-elevated border border-border rounded-xl shadow-lg',
+        'bg-[var(--surface-elevated)] border border-border rounded-xl shadow-lg',
         'p-6',
         // Dialog animation: fade + 4px translate — NO zoom, per design principles
         'data-[state=open]:animate-dialog-in data-[state=closed]:animate-dialog-out',

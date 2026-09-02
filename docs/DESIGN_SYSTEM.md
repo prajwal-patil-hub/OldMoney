@@ -420,7 +420,10 @@ body { background: var(--paper-base); color: var(--ink); }
 ### Open decision you may want to flip
 - **Primary button color.** The reference's *primary* key is a filled **terracotta**. Per your earlier preference ("no coloured buttons") the shipped `default` button is a **neutral raised paper key** instead. One-line switch to adopt the reference's terracotta primary: change the `default` variant background in `button.tsx` from `var(--surface-elevated)` to `var(--accent)` with `text-text-inverse`. Say the word and I'll flip it.
 
-### Follow-up passes (not yet done)
-- Per-component tactile variants: inputs (focus = accent ring + deeper inset), switches (raised knob sliding a full-pill track), tabs/segmented (pressed groove), sliders, checkboxes/radios (inset well → raised accent knob when checked), cards (hover lift).
-- Runtime WCAG/APCA contrast pass; bump `--text-muted` if it must carry small body text (see `tokens.css` notes).
-- Dark-mode fine-tuning of the neumorphic highlight strength on real dashboard cards.
+### Follow-up passes
+- ✅ **Component polish (done):** inputs & selects → inset wells with accent **outline** focus (outline is used deliberately so the ring survives the neumorphic `box-shadow`); textareas in the create forms → inset wells; cards → raised paper + opt-in hover-lift (`.nm-liftable`); tabs → inset groove with the active trigger raised out of it; buttons → raised keys that press in; dialogs/tooltips/dropdown/select menus → clean floating drop-shadows (arbitrary `bg-[var(--…)]` so they don't inherit the neumorphic raise); dialog scrim de-glassed (no blur). Tailwind now exposes `shadow-raised/-sm`, `shadow-inset`, `shadow-pressed` plus the `rounded-button/-card` + `shadow-card/-hover` aliases the app already referenced (previously no-ops → sharp corners).
+- ⏳ Switches, sliders, checkboxes/radios, stepper, pagination — not yet given bespoke tactile variants (no dedicated components in the repo yet).
+- ⏳ Runtime WCAG/APCA contrast pass; bump `--text-muted` if it must carry small body text (see `tokens.css` notes).
+
+### Implementation note — the `[class*="bg-surface"]` global rule
+Neumorphic shadows are applied app-wide via un-layered attribute selectors in `globals.css`, guarded with `:not([class*=":bg-surface"])` so Tailwind **state-variant** classes (`hover:bg-surface-muted`, `data-[state=active]:bg-surface`) don't trigger a permanent shadow. Because these rules are un-layered they outrank Tailwind utilities — so component focus rings use `outline` (a different property) rather than `box-shadow` `ring`, and floating overlays opt out by using arbitrary-value backgrounds that don't match the selector.
