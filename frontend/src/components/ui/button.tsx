@@ -35,9 +35,9 @@ const buttonVariants = cva(
         // Destructive — neutral key, danger-coloured ink (semantics without a loud fill)
         destructive:
           'bg-[var(--surface-elevated)] text-danger-text shadow-[var(--nm-raised-sm)] hover:brightness-[1.03] active:shadow-[var(--nm-pressed)]',
-        // Link — no key, terracotta text
+        // Link — no key, terracotta text (accent-text = AA-contrast shade)
         link:
-          'text-accent underline-offset-4 hover:underline p-0 h-auto shadow-none active:translate-y-0',
+          'text-accent-text underline-offset-4 hover:underline p-0 h-auto shadow-none active:translate-y-0',
         // Outline — engraved outline on the paper, presses into a well
         outline:
           'bg-transparent text-text-primary border border-border-strong hover:bg-[var(--surface-muted)] active:shadow-[var(--nm-inset)]',

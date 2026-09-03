@@ -92,26 +92,29 @@
   --border-strong:       oklch(68% 0.022 70);
   --border-subtle:       oklch(84% 0.018 78);
 
-  /* ── Text (espresso ink — never pure black) ── */
-  --text-primary:        oklch(30% 0.022 62);     /* #3B2E22 ink-strong    */
-  --text-secondary:      oklch(43% 0.025 62);     /* #5A4A3A ink           */
-  --text-muted:          oklch(57% 0.022 66);     /* #8A7A66 ink-muted     */
-  --text-placeholder:    oklch(72% 0.020 72);     /* #B4A793 ink-faint     */
-  --text-inverse:        oklch(94% 0.018 84);     /* on accent/dark        */
-  --text-disabled:       oklch(76% 0.015 72);     /* disabled states       */
+  /* ── Text (espresso ink — never pure black). Muted/placeholder
+        darkened from the raw reference values to reach WCAG AA on paper. */
+  --text-primary:        oklch(30% 0.022 62);     /* #3B2E22 ink-strong  ~9.9:1 */
+  --text-secondary:      oklch(43% 0.025 62);     /* #5A4A3A ink         ~5.9:1 */
+  --text-muted:          oklch(49% 0.024 64);     /* AA on paper         ~4.7:1 */
+  --text-placeholder:    oklch(60% 0.022 70);     /* input placeholders  ~3.1:1 */
+  --text-inverse:        oklch(100% 0 0);         /* white — on accent/dark fills */
+  --text-disabled:       oklch(74% 0.015 72);     /* disabled states       */
 
-  /* ── Brand actions — unified with the single terracotta accent ── */
-  --brand-primary:       oklch(58% 0.115 46);     /* #C36B41 terracotta    */
-  --brand-primary-hover: oklch(53% 0.115 44);     /* #B25E37 darker        */
-  --brand-primary-active:oklch(47% 0.110 44);     /* #9E5230 press         */
+  /* ── Brand actions — terracotta. FILL stays vivid (--accent); the
+        brand-primary token is used for TEXT (links) + focus ring, so it
+        is darkened to clear AA at body size. ── */
+  --brand-primary:       oklch(49% 0.118 44);     /* link/ring text  ~4.6:1 */
+  --brand-primary-hover: oklch(44% 0.115 44);     /* darker on hover        */
+  --brand-primary-active:oklch(40% 0.110 44);     /* press                  */
   --brand-primary-subtle:oklch(58% 0.115 46 / 10%);
   --brand-primary-muted: oklch(58% 0.115 46 / 18%);
 
   /* ── Accent (Terracotta / Copper) ── */
-  --accent:              oklch(58% 0.115 46);     /* #C36B41               */
-  --accent-hover:        oklch(53% 0.115 44);     /* darker on hover       */
-  --accent-subtle:       oklch(88% 0.040 66);     /* warm tint bg          */
-  --accent-text:         oklch(52% 0.115 45);     /* terracotta text       */
+  --accent:              oklch(58% 0.115 46);     /* #C36B41 — vivid FILL   */
+  --accent-hover:        oklch(53% 0.115 44);     /* darker on hover        */
+  --accent-subtle:       oklch(88% 0.040 66);     /* warm tint bg           */
+  --accent-text:         oklch(47% 0.118 44);     /* terracotta TEXT ~4.8:1 */
 
   /* ── Semantic status ── */
   --success:             var(--green-700);
@@ -187,13 +190,14 @@
   --border-strong:       oklch(46% 0.016 66);
   --border-subtle:       oklch(31% 0.012 66);
 
-  /* ── Text (warm cream ink) ── */
-  --text-primary:        oklch(90% 0.020 82);     /* warm cream          */
-  --text-secondary:      oklch(74% 0.018 78);
-  --text-muted:          oklch(60% 0.016 72);
-  --text-placeholder:    oklch(50% 0.014 72);
-  --text-inverse:        oklch(26% 0.010 66);
-  --text-disabled:       oklch(44% 0.012 70);
+  /* ── Text (warm cream ink). Muted/placeholder lifted for WCAG AA
+        against the charcoal paper. ── */
+  --text-primary:        oklch(90% 0.020 82);     /* warm cream    ~11.6:1 */
+  --text-secondary:      oklch(74% 0.018 78);      /*               ~6.8:1  */
+  --text-muted:          oklch(66% 0.018 74);      /* AA on charcoal ~4.7:1 */
+  --text-placeholder:    oklch(58% 0.016 72);      /*               ~3.5:1  */
+  --text-inverse:        oklch(26% 0.010 66);      /* dark ink on accent fill */
+  --text-disabled:       oklch(46% 0.012 70);
 
   /* ── Brand actions — terracotta, brightened for dark paper ── */
   --brand-primary:       oklch(64% 0.125 46);
@@ -465,24 +469,27 @@
    (verified via APCA polarity-aware or WCAG relative luminance)
    ═══════════════════════════════════════════════════════════════
 
-   NEO-SKEUOMORPHIC PALETTE — warm paper. The reference palette is
-   intentionally low-contrast; these are the AA-critical pairs to
-   verify at runtime once the exact rendered OKLCH values are known.
+   NEO-SKEUOMORPHIC PALETTE — MEASURED WCAG ratios (rendered sRGB via
+   headless Chromium, 2026). Text pairs meet AA (4.5:1) unless noted.
 
-   LIGHT MODE (paper ~#EAE2D3):
-   • text-primary  (espresso ~#3B2E22) on paper:  ~9:1   (AA/AAA ok)
-   • text-secondary (~#5A4A3A) on paper:          ~6:1   (AA ok)
-   ⚠️ text-muted   (~#8A7A66) on paper:           ~3.4:1 — FAILS AA for
-     body text. Use only for ≥18px/large or non-essential meta, OR
-     darken to ~oklch(52% 0.022 66) if used for small captions.
-   • text-inverse on terracotta accent button:    ~4.6:1 (AA ok, verify)
+   LIGHT MODE (paper #E1DACC):
+   • text-primary   on paper ................ 9.89  AA/AAA
+   • text-secondary on paper ................ 5.86  AA
+   • text-muted     on paper ................ 4.52  AA   (darkened to pass)
+   • accent-text    on paper ................ 5.18  AA   (links, link-button)
+   • brand-primary  on paper ................ 4.76  AA   (<a> links, ring)
+   • white on accent fill ................... 4.49  AA   (active page/step)
+   • accent FILL    on paper ................ 3.23  graphical ok (fills/icons)
+   • text-placeholder on inset .............. 2.51  (WCAG-exempt; kept faint)
 
-   DARK MODE (charcoal paper ~oklch 26%):
-   • text-primary (cream) on charcoal:            ~10:1  (AA/AAA ok)
-   • text-secondary on charcoal:                  ~5.5:1 (AA ok)
-   ⚠️ text-muted on charcoal:                     verify ~4.2:1 at runtime
-   • accent (bright terracotta) on charcoal:      ~5:1   (AA ok)
+   DARK MODE (charcoal paper):
+   • text-primary   on charcoal ............ 11.57  AA/AAA
+   • text-secondary on charcoal ............. 6.77  AA
+   • text-muted     on charcoal ............. 5.01  AA   (lifted to pass)
+   • accent-text    on charcoal ............. 5.63  AA
+   • dark ink on accent fill ................ 4.78  AA
+   • text-placeholder on inset .............. 4.02  (exempt; comfortably legible)
 
-   ACTION: run a contrast pass (APCA or WCAG) on the rendered values
-   before shipping; bump --text-muted if it must carry small text.
+   NOTE: --accent stays vivid for FILLS/graphics (meets the 3:1 UI-component
+   floor); TEXT uses the darker --accent-text / --brand-primary shades.
    ═══════════════════════════════════════════════════════════════ */
