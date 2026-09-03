@@ -422,7 +422,8 @@ body { background: var(--paper-base); color: var(--ink); }
 
 ### Follow-up passes
 - ✅ **Component polish (done):** inputs & selects → inset wells with accent **outline** focus (outline is used deliberately so the ring survives the neumorphic `box-shadow`); textareas in the create forms → inset wells; cards → raised paper + opt-in hover-lift (`.nm-liftable`); tabs → inset groove with the active trigger raised out of it; buttons → raised keys that press in; dialogs/tooltips/dropdown/select menus → clean floating drop-shadows (arbitrary `bg-[var(--…)]` so they don't inherit the neumorphic raise); dialog scrim de-glassed (no blur). Tailwind now exposes `shadow-raised/-sm`, `shadow-inset`, `shadow-pressed` plus the `rounded-button/-card` + `shadow-card/-hover` aliases the app already referenced (previously no-ops → sharp corners).
-- ⏳ Switches, sliders, checkboxes/radios, stepper, pagination — not yet given bespoke tactile variants (no dedicated components in the repo yet).
+- ✅ **New tactile controls (done):** `switch.tsx`, `checkbox.tsx`, `radio.tsx` (Radio + RadioGroup), `slider.tsx` — built native-backed (no Radix deps): inset groove/well at rest, raised terracotta at the active end (switch fill, checkbox chip, radio disc + center dot, slider thumb). Slider track/thumb styled via `.nm-slider` in `globals.css`. Accessible (native inputs / `role="switch"`), controlled + uncontrolled.
+- ⏳ Stepper, pagination — still net-new builds, not yet added.
 - ⏳ Runtime WCAG/APCA contrast pass; bump `--text-muted` if it must carry small body text (see `tokens.css` notes).
 
 ### Implementation note — the `[class*="bg-surface"]` global rule

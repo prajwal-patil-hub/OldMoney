@@ -265,3 +265,57 @@ body {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   NEO-SKEUOMORPHIC · Range slider (.nm-slider)
+   Native range styled as an inset groove with a raised accent thumb.
+   ═══════════════════════════════════════════════════════════════ */
+.nm-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 22px;
+  background: transparent;
+  cursor: pointer;
+}
+/* Track — inset groove */
+.nm-slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--surface-inset);
+  box-shadow: var(--nm-inset);
+}
+.nm-slider::-moz-range-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--surface-inset);
+  box-shadow: var(--nm-inset);
+}
+/* Thumb — raised terracotta disc */
+.nm-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 18px;
+  width: 18px;
+  margin-top: -5px; /* centre on the 8px track */
+  border-radius: 9999px;
+  background: var(--accent);
+  box-shadow: var(--nm-raised-sm);
+}
+.nm-slider::-moz-range-thumb {
+  height: 18px;
+  width: 18px;
+  border: none;
+  border-radius: 9999px;
+  background: var(--accent);
+  box-shadow: var(--nm-raised-sm);
+}
+.nm-slider:focus-visible { outline: none; }
+.nm-slider:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.nm-slider:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.nm-slider:disabled { opacity: 0.5; cursor: not-allowed; }
