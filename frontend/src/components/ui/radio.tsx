@@ -8,8 +8,7 @@ import { cn } from '@/lib/utils'
  * disc with a light center dot (selected). Native <input type="radio">.
  * Group them by passing the same `name`.
  */
-export interface RadioProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'size'> {}
+export type RadioProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'size'>
 
 const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
   ({ className, ...props }, ref) => (

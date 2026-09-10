@@ -319,3 +319,18 @@ body {
   outline-offset: 2px;
 }
 .nm-slider:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ═══════════════════════════════════════════════════════════════
+   NEO-SKEUOMORPHIC · Indeterminate progress sweep
+   The fill slides back and forth inside its inset groove. Kept as a
+   transform (not width) so it stays on the compositor; the global
+   reduced-motion rule already collapses the animation to a stub.
+   ═══════════════════════════════════════════════════════════════ */
+.nm-progress-indeterminate {
+  animation: nm-progress-sweep 1.3s var(--ease-standard) infinite;
+}
+
+@keyframes nm-progress-sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}

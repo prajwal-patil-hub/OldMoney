@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { TransactionsTable } from '@/components/tables/TransactionsTable'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -294,13 +295,12 @@ function AddTransactionForm({ onSuccess, onCancel }: AddTransactionFormProps) {
         <label htmlFor="new-txn-notes" className="text-sm font-medium text-text-primary">
           Notes
         </label>
-        <textarea
+        <Textarea
           id="new-txn-notes"
           placeholder="Optional notes..."
           value={formData.notes}
           onChange={(e) => updateField('notes', e.target.value)}
           rows={2}
-          className="flex w-full rounded border border-border bg-surface-inset px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/20 focus-visible:border-brand-primary transition-all duration-150 resize-none"
         />
       </div>
 

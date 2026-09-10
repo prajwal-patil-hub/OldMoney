@@ -14,6 +14,7 @@ import { ChevronUp, ChevronDown, ChevronsUpDown, AlignJustify, List } from 'luci
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Progress } from '@/components/ui/progress'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { formatCurrency, formatPct, formatNumber, cn } from '@/lib/utils'
 import { ASSET_TYPE_LABELS } from '@/lib/constants'
@@ -77,12 +78,12 @@ function WeightBar({ weight }: { weight: number }) {
   const pct = Math.min(Math.max(weight * 100, 0), 100)
   return (
     <div className="flex items-center gap-2 justify-end">
-      <div className="w-16 h-1.5 rounded-full bg-surface-muted overflow-hidden flex-shrink-0">
-        <div
-          className="h-full rounded-full bg-accent"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
+      <Progress
+        value={pct}
+        size="sm"
+        label={`Portfolio weight: ${pct.toFixed(1)}%`}
+        className="w-16 flex-shrink-0"
+      />
       <span className="font-mono tabular-nums text-xs text-text-muted w-10 text-right">
         {pct.toFixed(1)}%
       </span>

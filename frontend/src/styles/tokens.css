@@ -56,19 +56,29 @@
   --accent-light:   oklch(88% 0.061 80);   /* #F1DEA8 — Buttermilk     */
   --accent-pale:    oklch(93% 0.034 80);   /* barely-there tint        */
 
-  /* ── Status primitives ── */
-  --green-700:  oklch(38% 0.100 150);
-  --green-500:  oklch(52% 0.110 150);
-  --green-100:  oklch(93% 0.030 150);
-  --red-700:    oklch(40% 0.120 25);
-  --red-500:    oklch(52% 0.130 25);
-  --red-100:    oklch(95% 0.030 25);
-  --amber-700:  oklch(45% 0.110 72);
-  --amber-300:  oklch(80% 0.090 72);
-  --amber-100:  oklch(96% 0.028 72);
-  --blue-700:   oklch(38% 0.100 255);
-  --blue-500:   oklch(55% 0.110 255);
-  --blue-100:   oklch(95% 0.025 255);
+  /* ── Status primitives — EARTHY, per DESIGN_SYSTEM §3.2.
+        The reference's semantic hues: olive/sage 136, amber 81,
+        warm brick 34, muted slate-teal 230. Deliberately low-chroma
+        so a banner still reads as stained paper, not a plastic chip.
+        The pale `-100` tints also pull ~25% toward the paper hue (83)
+        so they sit ON the material instead of floating over it.
+        --slate-100 carries LESS chroma than its siblings on purpose:
+        it is the only hue on the cool side of the wheel, and against a
+        warm ground simultaneous contrast makes equal chroma read as a
+        far louder tint (measured: it was the one banner still reading
+        as sky blue at 0.020).                                     ── */
+  --sage-700:   oklch(50% 0.085 136);   /* olive text            */
+  --sage-500:   oklch(59.5% 0.090 136); /* olive fill / graphic  */
+  --sage-100:   oklch(93.5% 0.020 123); /* sage-stained paper    */
+  --brick-700:  oklch(52% 0.115 34);    /* warm brick text       */
+  --brick-500:  oklch(61.8% 0.125 34);  /* warm brick fill       */
+  --brick-100:  oklch(93.5% 0.020 46);  /* brick-stained paper   */
+  --amber-700:  oklch(51% 0.095 81);    /* amber text            */
+  --amber-500:  oklch(60.8% 0.115 81);  /* amber fill            */
+  --amber-100:  oklch(93.5% 0.020 82);  /* amber-stained paper   */
+  --slate-700:  oklch(50.5% 0.045 230); /* slate-teal text       */
+  --slate-500:  oklch(60% 0.048 230);   /* slate-teal fill       */
+  --slate-100:  oklch(93.5% 0.012 205); /* slate-stained paper   */
 }
 
 
@@ -117,31 +127,36 @@
   --accent-text:         oklch(47% 0.118 44);     /* terracotta TEXT ~4.8:1 */
 
   /* ── Semantic status ── */
-  --success:             var(--green-700);
-  --success-text:        var(--green-700);
-  --success-bg:          var(--green-100);
-  --success-border:      oklch(52% 0.110 150 / 30%);
+  --success:             var(--sage-500);      /* fill  ~3.0:1 on paper */
+  --success-text:        var(--sage-700);      /* text  ~4.5:1 on paper */
+  --success-bg:          var(--sage-100);
+  --success-border:      oklch(59.5% 0.090 136 / 30%);
 
-  --warning:             var(--amber-700);
+  --warning:             var(--amber-500);
   --warning-text:        var(--amber-700);
   --warning-bg:          var(--amber-100);
-  --warning-border:      oklch(45% 0.110 72 / 30%);
+  --warning-border:      oklch(60.8% 0.115 81 / 30%);
 
-  --danger:              var(--red-700);
-  --danger-text:         var(--red-700);
-  --danger-bg:           var(--red-100);
-  --danger-border:       oklch(40% 0.120 25 / 30%);
+  --danger:              var(--brick-500);
+  --danger-text:         var(--brick-700);
+  --danger-bg:           var(--brick-100);
+  --danger-border:       oklch(61.8% 0.125 34 / 30%);
 
-  --info:                var(--blue-700);
-  --info-text:           var(--blue-700);
-  --info-bg:             var(--blue-100);
-  --info-border:         oklch(38% 0.100 255 / 30%);
+  --info:                var(--slate-500);
+  --info-text:           var(--slate-700);
+  --info-bg:             var(--slate-100);
+  --info-border:         oklch(60% 0.048 230 / 30%);
 
   /* ── Financial data colors ── */
-  --positive:            var(--green-500);        /* gains, positive P&L */
-  --positive-subtle:     var(--green-100);
-  --negative:            var(--red-500);          /* losses, negative P&L*/
-  --negative-subtle:     var(--red-100);
+  /* Gains/losses are body text in dense tables, so they are solved
+     against --surface-muted (the DARKEST ground they render on) to
+     clear AA there and everywhere lighter. Gains adopt the reference's
+     olive hue (136); losses stay redder (28) to hold them apart from
+     the terracotta accent (46). */
+  --positive:            oklch(47% 0.105 136);    /* gains   ~4.5:1 on table hdr */
+  --positive-subtle:     var(--sage-100);
+  --negative:            oklch(49% 0.125 28);     /* losses  ~4.5:1 on table hdr */
+  --negative-subtle:     var(--brick-100);
   --neutral-value:       var(--text-primary);     /* flat / zero         */
 
   /* ── Drop-shadow elevation (overlays that FLOAT above the paper) ──
@@ -212,32 +227,35 @@
   --accent-subtle:       oklch(66% 0.125 48 / 15%);
   --accent-text:         oklch(70% 0.120 50);
 
-  /* ── Status ── */
-  --success:             var(--green-500);
-  --success-text:        oklch(68% 0.110 150);
-  --success-bg:          oklch(38% 0.100 150 / 20%);
-  --success-border:      oklch(52% 0.110 150 / 25%);
+  /* ── Status — same earthy hues, re-solved for the charcoal ground.
+        The `-bg` washes are the FILL at 14% over the paper: any more
+        and the `-text` ink drops under AA on its own banner.        ── */
+  --success:             oklch(52.8% 0.090 136);
+  --success-text:        oklch(68% 0.085 136);        /* ~4.9:1 on its bg */
+  --success-bg:          oklch(52.8% 0.090 136 / 14%);
+  --success-border:      oklch(52.8% 0.090 136 / 25%);
 
-  --warning:             var(--amber-300);
-  --warning-text:        oklch(80% 0.090 72);
-  --warning-bg:          oklch(45% 0.110 72 / 20%);
-  --warning-border:      oklch(45% 0.110 72 / 25%);
+  --warning:             oklch(53.8% 0.100 81);
+  --warning-text:        oklch(68% 0.095 81);         /* ~4.7:1 on its bg */
+  --warning-bg:          oklch(53.8% 0.100 81 / 14%);
+  --warning-border:      oklch(53.8% 0.100 81 / 25%);
 
-  --danger:              var(--red-500);
-  --danger-text:         oklch(65% 0.130 25);
-  --danger-bg:           oklch(40% 0.120 25 / 20%);
-  --danger-border:       oklch(40% 0.120 25 / 25%);
+  --danger:              oklch(55% 0.125 34);
+  --danger-text:         oklch(68% 0.119 34);         /* ~4.5:1 on its bg */
+  --danger-bg:           oklch(55% 0.125 34 / 14%);
+  --danger-border:       oklch(55% 0.125 34 / 25%);
 
-  --info:                var(--blue-500);
-  --info-text:           oklch(68% 0.110 255);
-  --info-bg:             oklch(38% 0.100 255 / 20%);
-  --info-border:         oklch(38% 0.100 255 / 25%);
+  --info:                oklch(53.2% 0.048 230);
+  --info-text:           oklch(68% 0.046 230);        /* ~4.8:1 on its bg */
+  --info-bg:             oklch(53.2% 0.048 230 / 14%);
+  --info-border:         oklch(53.2% 0.048 230 / 25%);
 
-  /* ── Financial ── */
-  --positive:            oklch(65% 0.115 150);
-  --positive-subtle:     oklch(52% 0.110 150 / 15%);
-  --negative:            oklch(65% 0.130 25);
-  --negative-subtle:     oklch(52% 0.130 25 / 15%);
+  /* ── Financial — solved against --surface-elevated (the LIGHTEST
+        ground light ink meets here), so AA holds on every darker one. */
+  --positive:            oklch(69% 0.110 136);    /* gains  ~4.5:1 on elevated */
+  --positive-subtle:     oklch(69% 0.110 136 / 15%);
+  --negative:            oklch(71% 0.125 28);     /* losses ~4.5:1 on elevated */
+  --negative-subtle:     oklch(71% 0.125 28 / 15%);
 
   /* ── Drop-shadow elevation (floating overlays, dark ground) ── */
   --shadow-xs:  0 2px 4px rgba(0,0,0,0.35);
@@ -489,6 +507,34 @@
    • accent-text    on charcoal ............. 5.63  AA
    • dark ink on accent fill ................ 4.78  AA
    • text-placeholder on inset .............. 4.02  (exempt; comfortably legible)
+
+   SEMANTIC STATUS + FINANCIAL — earthy repalette (see §3.2). Status text
+   is measured on its OWN banner background; gain/loss ink is measured on
+   the WORST-CASE surface it renders on, so AA holds everywhere lighter
+   (light mode: --surface-muted table headers; dark: --surface-elevated).
+
+   LIGHT MODE:
+   • success-text on success-bg ............. 4.82  AA
+   • warning-text on warning-bg ............. 4.80  AA
+   • danger-text  on danger-bg .............. 4.78  AA
+   • info-text    on info-bg ................ 4.83  AA
+   • positive on table hdr / paper / card ... 4.50 / 5.18 / 5.51  AA
+   • negative on table hdr / paper / card ... 4.52 / 5.20 / 5.53  AA
+   • status FILLS on paper .................. ~3.0  graphical ok (3:1 floor)
+
+   DARK MODE:
+   • success-text on success-bg ............. 4.87  AA
+   • warning-text on warning-bg ............. 4.69  AA
+   • danger-text  on danger-bg .............. 4.53  AA
+   • info-text    on info-bg ................ 4.78  AA
+   • positive on elevated / paper / card .... 4.52 / 5.74 / 5.13  AA
+   • negative on elevated / paper / card .... 4.51 / 5.73 / 5.12  AA
+
+   Previously FAILING and fixed by this pass: light-mode --positive was
+   4.07 on paper / 3.53 on table headers, --negative 3.97 on table
+   headers, and dark-mode --negative 4.05 on cards — i.e. P&L figures,
+   the most-read text in the app, were below AA on the surfaces they
+   actually render on.
 
    NOTE: --accent stays vivid for FILLS/graphics (meets the 3:1 UI-component
    floor); TEXT uses the darker --accent-text / --brand-primary shades.

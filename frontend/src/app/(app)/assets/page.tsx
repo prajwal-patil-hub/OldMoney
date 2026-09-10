@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { ASSET_TYPE_LABELS, STALE_TIME } from '@/lib/constants'
+import { ASSET_TYPE_LABELS } from '@/lib/constants'
 import type { AssetType } from '@/types/portfolio'
 
 const ASSET_TYPES: AssetType[] = ['EQUITY', 'ETF', 'MUTUAL_FUND', 'BOND', 'CRYPTO', 'PE_VC', 'REAL_ESTATE', 'DERIVATIVE', 'CASH', 'ALTERNATIVE']

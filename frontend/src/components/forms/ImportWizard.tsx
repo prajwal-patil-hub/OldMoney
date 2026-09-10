@@ -7,6 +7,9 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { Alert } from '@/components/ui/alert'
+import { Input } from '@/components/ui/input'
+import { Stepper } from '@/components/ui/stepper'
 import { cn } from '@/lib/utils'
 import { useImportPreview, useImportCommit } from '@/lib/hooks/useImports'
 import type { ImportPreviewResponse, ImportCommitResponse } from '@/lib/hooks/useImports'
@@ -123,41 +126,12 @@ export function ImportWizard({
 
   return (
     <div className="space-y-6">
-      {/* Step indicators */}
-      <div className="flex items-center gap-0" role="list" aria-label="Import progress">
-        {STEPS.map((s, i) => {
-          const isCompleted = i < stepIndex
-          const isCurrent = s.id === step
-          return (
-            <div key={s.id} className="flex items-center gap-0 flex-1" role="listitem">
-              <div className="flex flex-col items-center gap-1 flex-1">
-                <div
-                  className={cn(
-                    'size-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-200',
-                    isCompleted
-                      ? 'bg-success text-text-inverse'
-                      : isCurrent
-                      ? 'bg-brand-primary text-text-inverse'
-                      : 'bg-surface-muted text-text-muted border border-border'
-                  )}
-                  aria-current={isCurrent ? 'step' : undefined}
-                >
-                  {isCompleted ? <CheckCircle className="size-4" aria-hidden="true" /> : i + 1}
-                </div>
-                <span className={cn('text-xs font-medium', isCurrent ? 'text-text-primary' : 'text-text-muted')}>
-                  {s.label}
-                </span>
-              </div>
-              {i < STEPS.length - 1 && (
-                <div
-                  className={cn('h-0.5 flex-1 mb-5 transition-colors duration-200', isCompleted ? 'bg-success' : 'bg-border')}
-                  aria-hidden="true"
-                />
-              )}
-            </div>
-          )
-        })}
-      </div>
+      {/* Step indicators — the shared tactile stepper */}
+      <Stepper
+        steps={STEPS.map((s) => s.label)}
+        current={stepIndex}
+        aria-label="Import progress"
+      />
 
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
@@ -225,6 +199,29 @@ export function ImportWizard({
                     <SelectItem value="%d-%m-%Y">DD-MM-YYYY</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Header offset — real bank/brokerage exports often carry a
+                  preamble (account summary, disclaimers) above the header row.
+                  The API already accepts skip_rows; this exposes it. */}
+              <div className="space-y-1.5">
+                <label htmlFor="import-skip-rows" className="text-sm font-medium text-text-primary">
+                  Skip Leading Rows
+                </label>
+                <Input
+                  id="import-skip-rows"
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={skipRows}
+                  onChange={(e) => {
+                    const n = Number.parseInt(e.target.value, 10)
+                    setSkipRows(Number.isNaN(n) ? 0 : Math.min(Math.max(n, 0), 100))
+                  }}
+                />
+                <p className="text-xs text-text-muted">
+                  Rows to discard before the header row. Leave at 0 for a clean export.
+                </p>
               </div>
 
               {/* Drop zone */}
@@ -343,10 +340,10 @@ export function ImportWizard({
 
               {/* Row errors */}
               {previewData.errors.length > 0 && (
-                <div className="p-3 rounded-lg bg-warning-bg border border-warning/20">
-                  <p className="text-sm font-medium text-warning-text mb-1">
-                    {previewData.error_count} row(s) will be skipped
-                  </p>
+                <Alert
+                  variant="warning"
+                  title={`${previewData.error_count} row(s) will be skipped`}
+                >
                   <ul className="space-y-0.5">
                     {previewData.errors.slice(0, 5).map((e, i) => (
                       <li key={i} className="text-xs text-text-secondary">
@@ -357,7 +354,7 @@ export function ImportWizard({
                       <li className="text-xs text-text-muted">…and {previewData.errors.length - 5} more</li>
                     )}
                   </ul>
-                </div>
+                </Alert>
               )}
 
               <div className="flex gap-2">

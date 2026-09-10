@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useCreatePortfolio } from '@/lib/hooks/usePortfolios'
 import { CURRENCIES } from '@/lib/constants'
@@ -76,13 +77,12 @@ export function CreatePortfolioForm({ onSuccess, onCancel }: CreatePortfolioForm
         <label htmlFor="portfolio-desc" className="text-sm font-medium text-text-primary">
           Description
         </label>
-        <textarea
+        <Textarea
           id="portfolio-desc"
           placeholder="Optional description..."
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           rows={2}
-          className="flex w-full rounded-[var(--radius-md)] border border-border-subtle bg-surface-inset px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline focus:outline-2 focus:outline-offset-1 focus:[outline-color:var(--accent)] focus:border-[var(--accent)] transition-[border-color,outline-color] duration-150 resize-none"
         />
       </div>
 

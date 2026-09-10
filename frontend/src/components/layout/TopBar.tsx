@@ -3,12 +3,14 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ChevronRight, Search, LogOut, User, Settings } from 'lucide-react'
+import { Search, LogOut, User, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/ui.store'
 import { useAuthStore } from '@/store/auth.store'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { Button } from '@/components/ui/button'
+import { Avatar, getInitials } from '@/components/ui/avatar'
+import { Breadcrumbs, type Crumb } from '@/components/ui/breadcrumbs'
 import { ThemeToggle } from './ThemeToggle'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
@@ -31,12 +33,6 @@ const routeLabels: Record<string, string> = {
   settings:     'Settings',
 }
 
-interface Crumb {
-  label: string
-  href: string
-  isLast: boolean
-}
-
 function useBreadcrumbs(): Crumb[] {
   const pathname = usePathname()
   const segments = pathname.split('/').filter(Boolean)
@@ -49,17 +45,8 @@ function useBreadcrumbs(): Crumb[] {
       (segment.length > 12
         ? segment.slice(0, 8) + '…'
         : segment.charAt(0).toUpperCase() + segment.slice(1))
-    return { label, href, isLast: i === segments.length - 1 }
+    return { label, href }
   })
-}
-
-function getInitials(fullName?: string | null, email?: string | null): string {
-  if (fullName) {
-    const parts = fullName.trim().split(/\s+/)
-    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-    return fullName.slice(0, 2).toUpperCase()
-  }
-  return (email?.charAt(0) ?? 'U').toUpperCase()
 }
 
 export function TopBar() {
@@ -80,40 +67,7 @@ export function TopBar() {
       role="banner"
     >
       {/* ── Left: Breadcrumb ── */}
-      <nav
-        aria-label="Breadcrumb"
-        className="flex items-center gap-0.5 flex-1 min-w-0 overflow-hidden"
-      >
-        {breadcrumbs.length === 0 ? (
-          <span className="text-sm font-medium text-text-primary">Dashboard</span>
-        ) : (
-          breadcrumbs.map((crumb, i) => (
-            <React.Fragment key={crumb.href}>
-              {i > 0 && (
-                <ChevronRight
-                  className="size-3 text-text-muted mx-0.5 shrink-0"
-                  aria-hidden="true"
-                />
-              )}
-              {crumb.isLast ? (
-                <span className="text-sm font-medium text-text-primary truncate">
-                  {crumb.label}
-                </span>
-              ) : (
-                <Link
-                  href={crumb.href}
-                  className={cn(
-                    'text-sm text-text-muted shrink-0',
-                    'hover:text-text-primary transition-colors duration-[120ms]'
-                  )}
-                >
-                  {crumb.label}
-                </Link>
-              )}
-            </React.Fragment>
-          ))
-        )}
-      </nav>
+      <Breadcrumbs items={breadcrumbs} className="flex-1" />
 
       {/* ── Right actions ── */}
       <div className="flex items-center gap-1 shrink-0">
@@ -170,14 +124,15 @@ export function TopBar() {
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
-                'flex items-center justify-center size-7 rounded-full',
-                'bg-brand-subtle text-brand-primary text-xs font-semibold uppercase',
-                'hover:bg-brand-muted transition-colors duration-[120ms]',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 focus-visible:ring-offset-2'
+                'flex shrink-0 items-center justify-center rounded-full',
+                'transition-[filter] duration-[120ms] hover:brightness-[1.04]',
+                'active:[&>span]:shadow-[var(--nm-pressed)]',
+                'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
+                'focus-visible:[outline-color:var(--accent)]'
               )}
               aria-label="User menu"
             >
-              {initials}
+              <Avatar initials={initials} />
             </button>
           </DropdownMenuTrigger>
 

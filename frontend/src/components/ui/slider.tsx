@@ -8,8 +8,7 @@ import { cn } from '@/lib/utils'
  * raised terracotta thumb. Pseudo-element styling lives in globals.css
  * (`.nm-slider`) since track/thumb can't be reached from utility classes.
  */
-export interface SliderProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {}
+export type SliderProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'>
 
 const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
   ({ className, ...props }, ref) => (

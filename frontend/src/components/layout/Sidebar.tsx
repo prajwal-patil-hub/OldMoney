@@ -24,6 +24,7 @@ import { useUIStore } from '@/store/ui.store'
 import { useAuthStore } from '@/store/auth.store'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { Button } from '@/components/ui/button'
+import { Avatar, getInitials } from '@/components/ui/avatar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   DropdownMenu,
@@ -119,16 +120,6 @@ function NavItem({ href, label, icon: Icon, collapsed, accent }: NavItemProps) {
   }
 
   return inner
-}
-
-// ── User initials helper ──
-function getInitials(fullName?: string | null, email?: string | null): string {
-  if (fullName) {
-    const parts = fullName.trim().split(/\s+/)
-    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-    return fullName.slice(0, 2).toUpperCase()
-  }
-  return (email?.charAt(0) ?? 'U').toUpperCase()
 }
 
 // ── Org monogram (2 chars from name) ──
@@ -246,12 +237,8 @@ export function Sidebar() {
               )}
               aria-label="User menu"
             >
-              {/* 28px avatar — brand-subtle bg, initials */}
-              <div className="size-7 rounded-full bg-brand-subtle flex items-center justify-center shrink-0">
-                <span className="text-[11px] font-semibold text-brand-primary uppercase">
-                  {initials}
-                </span>
-              </div>
+              {/* 28px tactile avatar — raised disc, accent initials */}
+              <Avatar initials={initials} />
 
               {!sidebarCollapsed && (
                 <div className="flex-1 text-left min-w-0">
